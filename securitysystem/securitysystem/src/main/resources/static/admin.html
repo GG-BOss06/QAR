@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>管理后台 - QAR 安全系统</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <div class="nav">
+      <div class="nav-inner">
+        <div class="brand">QAR 安全系统</div>
+        <a class="link" href="/workbench">工作台</a>
+        <a class="link" href="/admin">管理后台</a>
+        <div class="spacer"></div>
+        <div class="pill" id="me-pill">-</div>
+        <button class="btn" id="btn-logout">退出</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="grid" style="grid-template-columns:1fr">
+        <div class="card">
+          <div class="card-h">
+            <div class="h2">用户与权限</div>
+            <div class="muted">仅 admin 可查看；admin 为预置唯一用户</div>
+          </div>
+          <div class="card-b">
+            <table class="table" id="users">
+              <thead>
+                <tr>
+                  <th>用户</th>
+                  <th>角色</th>
+                  <th>创建时间</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-h">
+            <div class="row" style="justify-content:space-between">
+              <div>
+                <div class="h2">全量数据管理</div>
+                <div class="muted">查看全部记录并导出全部解密数据（zip）</div>
+              </div>
+              <button class="btn primary" id="btn-export">导出全部数据</button>
+            </div>
+          </div>
+          <div class="card-b">
+            <table class="table" id="files">
+              <thead>
+                <tr>
+                  <th>记录ID</th>
+                  <th>归属用户</th>
+                  <th>文件名</th>
+                  <th>大小</th>
+                  <th>策略</th>
+                  <th>上传时间</th>
+                  <th class="actions">操作</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">
+      <div class="t">提示</div>
+      <div class="m"></div>
+    </div>
+
+    <script src="/assets/common.js"></script>
+    <script src="/assets/admin.js"></script>
+  </body>
+</html>
+

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>数据工作台 - QAR 安全系统</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <div class="nav">
+      <div class="nav-inner">
+        <div class="brand">QAR 安全系统</div>
+        <a class="link" href="/workbench">工作台</a>
+        <a class="link" id="admin-link" href="/admin" style="display:none">管理后台</a>
+        <div class="spacer"></div>
+        <div class="pill" id="me-pill">未登录</div>
+        <button class="btn" id="btn-logout">退出</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="grid">
+        <div class="card">
+          <div class="card-h">
+            <div class="h2">加密上传</div>
+            <div class="muted">文件会先被 Base64 编码后进入既有加密模块，再将密文存入数据库</div>
+          </div>
+          <div class="card-b col">
+            <div class="col">
+              <div class="label">选择文件</div>
+              <input class="input" type="file" id="file" />
+            </div>
+            <div class="col">
+              <div class="label">策略 policy（可选）</div>
+              <input class="input" id="policy" placeholder="role:user" />
+            </div>
+            <button class="btn primary" id="btn-upload">开始上传并加密</button>
+            <div class="muted" id="upload-result"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <div class="h2">我的数据</div>
+            <div class="muted">只显示你自己上传的数据；admin 可在管理后台查看全量</div>
+          </div>
+          <div class="card-b">
+            <table class="table" id="tbl">
+              <thead>
+                <tr>
+                  <th>文件名</th>
+                  <th>大小</th>
+                  <th>策略</th>
+                  <th>上传时间</th>
+                  <th class="actions">操作</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <div class="muted" id="empty" style="display:none;margin-top:10px">暂无数据，先上传一份</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">
+      <div class="t">提示</div>
+      <div class="m"></div>
+    </div>
+
+    <script src="/assets/common.js"></script>
+    <script src="/assets/workbench.js"></script>
+  </body>
+</html>
+

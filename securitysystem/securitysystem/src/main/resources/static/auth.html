@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>登录/注册 - QAR 安全系统</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <div class="container" style="min-height:100%;display:flex;align-items:center;justify-content:center">
+      <div class="card" style="width:480px;max-width:92vw">
+        <div class="card-h">
+          <div class="h1">欢迎使用 QAR 安全系统</div>
+          <div class="muted">登录后可加密上传并按权限解密下载</div>
+        </div>
+        <div class="tabs" style="margin-top:12px">
+          <div class="tab active" id="tab-login">登录</div>
+          <div class="tab" id="tab-register">注册</div>
+        </div>
+        <div class="card-b">
+          <div id="logged-in" style="display:none" class="col">
+            <div class="badge ok" id="me-badge">已登录</div>
+            <div class="row">
+              <a class="btn primary" href="/workbench">前往工作台</a>
+              <button class="btn" id="btn-logout">退出登录</button>
+            </div>
+          </div>
+
+          <div id="panel-login" class="col">
+            <div class="col">
+              <div class="label">邮箱/用户名</div>
+              <input class="input" id="login-username" autocomplete="username" />
+            </div>
+            <div class="col">
+              <div class="label">密码</div>
+              <input class="input" id="login-password" type="password" autocomplete="current-password" />
+            </div>
+            <button class="btn primary" id="btn-login">登录</button>
+          </div>
+
+          <div id="panel-register" class="col" style="display:none">
+            <div class="col">
+              <div class="label">邮箱/用户名</div>
+              <input class="input" id="reg-username" autocomplete="username" />
+            </div>
+            <div class="col">
+              <div class="label">密码</div>
+              <input class="input" id="reg-password" type="password" autocomplete="new-password" />
+            </div>
+            <div class="col">
+              <div class="label">确认密码</div>
+              <input class="input" id="reg-password2" type="password" autocomplete="new-password" />
+            </div>
+            <button class="btn primary" id="btn-register">注册</button>
+            <div class="muted">Admin 为预置唯一账号，无法重复注册</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">
+      <div class="t">提示</div>
+      <div class="m"></div>
+    </div>
+
+    <script src="/assets/common.js"></script>
+    <script src="/assets/auth.js"></script>
+  </body>
+</html>
+
