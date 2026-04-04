@@ -41,5 +41,11 @@ public class PageController {
                 .contentType(MediaType.TEXT_HTML)
                 .body(new ClassPathResource("static/admin.html"));
     }
-}
 
+    @GetMapping("/feedback")
+    public ResponseEntity<Resource> feedback() {
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_HTML)
+                .body(new ClassPathResource("static/feedback.html"));
+    }
+}

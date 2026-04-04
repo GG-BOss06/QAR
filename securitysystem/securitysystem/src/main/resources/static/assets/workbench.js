@@ -49,8 +49,11 @@ async function onUpload() {
     fd.append("file", fileInput.files[0])
     if (policy) fd.append("policy", policy)
     const resp = await apiFetch("/api/files", { method: "POST", body: fd, headers: {} })
+    localStorage.setItem("qar_last_upload_id", resp.id)
     showToast("上传成功", "已加密并写入数据库：" + resp.id, "success")
-    out.textContent = "记录ID：" + resp.id + " · 策略：" + (resp.policy || "-")
+    out.innerHTML = "记录ID：<b></b> · 策略：<span></span> · <a class='link' href='/feedback?fileId=" + encodeURIComponent(resp.id) + "&subject=" + encodeURIComponent("关于记录 " + resp.id + " 的问题") + "'>就此记录提交反馈</a>"
+    out.querySelector("b").textContent = resp.id
+    out.querySelector("span").textContent = resp.policy || "-"
     fileInput.value = ""
     await refreshList()
   } catch (e) {
@@ -82,4 +85,3 @@ async function main() {
 }
 
 main()
-

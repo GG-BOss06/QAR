@@ -22,6 +22,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(
@@ -97,6 +98,13 @@ public class AuthAndFileFlowTests {
                 .getContentAsByteArray();
         assertThat(downloaded).isEqualTo(payload);
 
+        mvc.perform(post("/api/feedback")
+                        .cookie(sessionCookie)
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("{\"type\":\"bug\",\"subject\":\"下载校验\",\"message\":\"下载正常，但我想确认一下流程\",\"relatedFileId\":\"" + fileId + "\"}"))
+                .andExpect(status().isOk());
+
         String adminSetCookie = mvc.perform(post("/api/auth/login")
                         .with(csrf())
                         .contentType("application/json")
@@ -108,6 +116,21 @@ public class AuthAndFileFlowTests {
         assertThat(adminSetCookie).contains("QAR_SESSION=");
         String adminToken = adminSetCookie.split("QAR_SESSION=")[1].split(";", 2)[0];
         Cookie adminCookie = new Cookie("QAR_SESSION", adminToken);
+
+        String feedbackList = mvc.perform(get("/api/admin/feedback").cookie(adminCookie))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(feedbackList).contains("下载校验");
+        String feedbackId = feedbackList.split("\"id\":\"")[1].split("\"", 2)[0];
+
+        mvc.perform(patch("/api/admin/feedback/" + feedbackId)
+                        .cookie(adminCookie)
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("{\"status\":\"RESOLVED\",\"adminReply\":\"收到，流程正常\"}"))
+                .andExpect(status().isOk());
 
         byte[] zipBytes = mvc.perform(get("/api/admin/files/export").cookie(adminCookie))
                 .andExpect(status().isOk())

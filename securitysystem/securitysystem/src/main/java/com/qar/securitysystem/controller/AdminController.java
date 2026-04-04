@@ -1,5 +1,6 @@
 package com.qar.securitysystem.controller;
 
+import com.qar.securitysystem.dto.AdminFeedbackUpdateRequest;
 import com.qar.securitysystem.model.FileRecordEntity;
 import com.qar.securitysystem.service.AdminService;
 import com.qar.securitysystem.service.FileService;
@@ -7,6 +8,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -46,6 +50,20 @@ public class AdminController {
                 .body(zip);
     }
 
+    @GetMapping("/feedback")
+    public ResponseEntity<?> feedback() {
+        return ResponseEntity.ok(adminService.listAllFeedback());
+    }
+
+    @PatchMapping("/feedback/{id}")
+    public ResponseEntity<?> updateFeedback(@PathVariable("id") String id, @RequestBody AdminFeedbackUpdateRequest req) {
+        try {
+            return ResponseEntity.ok(adminService.updateFeedback(id, req == null ? null : req.getStatus(), req == null ? null : req.getAdminReply()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("code", 400, "message", e.getMessage()));
+        }
+    }
+
     private byte[] zipAll(List<FileRecordEntity> all) {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -73,4 +91,3 @@ public class AdminController {
         return name.replace("\\", "_").replace("/", "_").replace("\n", " ").replace("\r", " ");
     }
 }
-

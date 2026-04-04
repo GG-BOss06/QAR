@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>反馈与联系 - QAR 安全系统</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <div class="nav">
+      <div class="nav-inner">
+        <div class="brand">QAR 安全系统</div>
+        <a class="link" href="/workbench">工作台</a>
+        <a class="link" href="/feedback">反馈与联系</a>
+        <a class="link" id="admin-link" href="/admin" style="display:none">管理后台</a>
+        <div class="spacer"></div>
+        <div class="pill" id="me-pill">未登录</div>
+        <button class="btn" id="btn-logout">退出</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="grid">
+        <div class="card">
+          <div class="card-h">
+            <div class="h2">提交反馈</div>
+            <div class="muted">建议、问题、数据下载异常都可以提交；可关联最近上传的记录 ID 便于排查</div>
+          </div>
+          <div class="card-b col">
+            <div class="split">
+              <div style="flex:1">
+                <div class="label">类型</div>
+                <select class="input" id="type">
+                  <option value="bug">Bug</option>
+                  <option value="suggestion">建议</option>
+                  <option value="data">数据问题</option>
+                  <option value="account">账号/权限</option>
+                  <option value="other">其他</option>
+                </select>
+              </div>
+              <div style="flex:1">
+                <div class="label">联系方式（可选）</div>
+                <input class="input" id="contact" placeholder="邮箱/电话/微信" />
+              </div>
+            </div>
+            <div class="col">
+              <div class="label">主题（可选）</div>
+              <input class="input" id="subject" placeholder="例如：下载解密失败 / 上传后列表不刷新" />
+            </div>
+            <div class="col">
+              <div class="row" style="justify-content:space-between">
+                <div class="label">关联记录 ID（可选）</div>
+                <div class="row">
+                  <button class="btn" id="btn-fill-last" type="button">填入最近上传</button>
+                  <button class="btn" id="btn-copy-env" type="button">复制环境信息</button>
+                </div>
+              </div>
+              <input class="input" id="relatedFileId" placeholder="例如：a1b2c3..." />
+            </div>
+            <div class="col">
+              <div class="label">内容</div>
+              <textarea class="input" id="message" style="min-height:180px;resize:vertical" placeholder="描述问题复现步骤、期望结果、实际结果。若涉及某条数据请填写关联记录ID。"></textarea>
+            </div>
+            <button class="btn primary" id="btn-submit">提交反馈</button>
+            <div class="muted" id="submit-hint"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <div class="row" style="justify-content:space-between">
+              <div>
+                <div class="h2">我的反馈</div>
+                <div class="muted">展示最近提交的反馈与处理状态</div>
+              </div>
+              <button class="btn" id="btn-refresh">刷新</button>
+            </div>
+          </div>
+          <div class="card-b">
+            <table class="table" id="tbl">
+              <thead>
+                <tr>
+                  <th>主题</th>
+                  <th>类型</th>
+                  <th>状态</th>
+                  <th>关联记录</th>
+                  <th>更新时间</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <div class="muted" id="empty" style="display:none;margin-top:10px">还没有反馈记录</div>
+            <div class="card" style="margin-top:14px;border-style:dashed;box-shadow:none">
+              <div class="card-b">
+                <div class="h2" style="margin-bottom:6px">快速提示</div>
+                <div class="muted">如果你遇到“无权限/解密失败”，建议在反馈中附上：账号、操作路径、关联记录 ID、策略 policy 与时间点。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">
+      <div class="t">提示</div>
+      <div class="m"></div>
+    </div>
+
+    <script src="/assets/common.js"></script>
+    <script src="/assets/feedback.js"></script>
+  </body>
+</html>
+
