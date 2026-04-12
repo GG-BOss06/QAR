@@ -14,7 +14,14 @@ async function ensureAdmin() {
     location.href = "/workbench"
     return null
   }
-  document.getElementById("me-pill").textContent = me.emailOrUsername + " · " + me.role
+  const mePill = document.getElementById("me-pill")
+  if (mePill) {
+    mePill.textContent = me.emailOrUsername + " · " + me.role
+  }
+  const mePillSidebar = document.getElementById("me-pill-sidebar")
+  if (mePillSidebar) {
+    mePillSidebar.textContent = me.emailOrUsername + " · " + me.role
+  }
   return me
 }
 
@@ -387,35 +394,59 @@ async function main() {
   const me = await ensureAdmin()
   if (!me) return
 
-  document.getElementById("btn-logout").addEventListener("click", onLogout)
+  const btnLogout = document.getElementById("btn-logout")
+  if (btnLogout) {
+    btnLogout.addEventListener("click", onLogout)
+  }
 
   // Person event listeners
-  document.getElementById("btn-refresh-persons").addEventListener("click", refreshPersons)
-  document.getElementById("btn-add-person").addEventListener("click", onAddPerson)
-  document.getElementById("search-keyword").addEventListener("input", applyPersonFiltersAndSort)
-  document.getElementById("filter-date-start").addEventListener("change", applyPersonFiltersAndSort)
-  document.getElementById("filter-date-end").addEventListener("change", applyPersonFiltersAndSort)
-  document.getElementById("btn-reset-filters").addEventListener("click", () => {
-    document.getElementById("search-keyword").value = "";
-    document.getElementById("filter-date-start").value = "";
-    document.getElementById("filter-date-end").value = "";
-    applyPersonFiltersAndSort();
-  });
-
-  document.querySelectorAll("table#persons th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      const field = th.dataset.sort;
-      if (personSortField === field) {
-        personSortOrder = personSortOrder === 'asc' ? 'desc' : 'asc';
-      } else {
-        personSortField = field;
-        personSortOrder = 'asc';
-      }
-      document.querySelectorAll("table#persons th.sortable").forEach(t => t.className = "sortable");
-      th.classList.add(personSortOrder);
+  const btnRefreshPersons = document.getElementById("btn-refresh-persons")
+  if (btnRefreshPersons) {
+    btnRefreshPersons.addEventListener("click", refreshPersons)
+  }
+  const btnAddPerson = document.getElementById("btn-add-person")
+  if (btnAddPerson) {
+    btnAddPerson.addEventListener("click", onAddPerson)
+  }
+  const searchKeyword = document.getElementById("search-keyword")
+  if (searchKeyword) {
+    searchKeyword.addEventListener("input", applyPersonFiltersAndSort)
+  }
+  const filterDateStart = document.getElementById("filter-date-start")
+  if (filterDateStart) {
+    filterDateStart.addEventListener("change", applyPersonFiltersAndSort)
+  }
+  const filterDateEnd = document.getElementById("filter-date-end")
+  if (filterDateEnd) {
+    filterDateEnd.addEventListener("change", applyPersonFiltersAndSort)
+  }
+  const btnResetFilters = document.getElementById("btn-reset-filters")
+  if (btnResetFilters) {
+    btnResetFilters.addEventListener("click", () => {
+      if (searchKeyword) searchKeyword.value = "";
+      if (filterDateStart) filterDateStart.value = "";
+      if (filterDateEnd) filterDateEnd.value = "";
       applyPersonFiltersAndSort();
     });
-  });
+  }
+
+  const sortableHeaders = document.querySelectorAll("table#persons th.sortable")
+  if (sortableHeaders) {
+    sortableHeaders.forEach(th => {
+      th.addEventListener("click", () => {
+        const field = th.dataset.sort;
+        if (personSortField === field) {
+          personSortOrder = personSortOrder === 'asc' ? 'desc' : 'asc';
+        } else {
+          personSortField = field;
+          personSortOrder = 'asc';
+        }
+        document.querySelectorAll("table#persons th.sortable").forEach(t => t.className = "sortable");
+        th.classList.add(personSortOrder);
+        applyPersonFiltersAndSort();
+      });
+    });
+  }
 
   await refreshPersons()
 }

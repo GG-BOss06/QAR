@@ -5,7 +5,14 @@ async function ensureMe() {
     location.href = "/auth"
     return null
   }
-  document.getElementById("me-pill").textContent = me.emailOrUsername + " · " + me.role
+  const mePill = document.getElementById("me-pill")
+  if (mePill) {
+    mePill.textContent = me.emailOrUsername + " · " + me.role
+  }
+  const mePillSidebar = document.getElementById("me-pill-sidebar")
+  if (mePillSidebar) {
+    mePillSidebar.textContent = me.emailOrUsername + " · " + me.role
+  }
   const pfName = document.getElementById("pf-name")
   const pfNo = document.getElementById("pf-no")
   const pfAirline = document.getElementById("pf-airline")
@@ -17,10 +24,20 @@ async function ensureMe() {
   if (pfPos) pfPos.value = me.positionTitle || "-"
   if (pfDept) pfDept.value = me.department || ""
   if (me.role === "admin") {
-    document.getElementById("admin-link").style.display = "inline"
-    document.getElementById("admin-data-link").style.display = "inline"
+    const adminLink = document.getElementById("admin-link")
+    if (adminLink) {
+      adminLink.style.display = "inline"
+    }
+    const adminDataLink = document.getElementById("admin-data-link")
+    if (adminDataLink) {
+      adminDataLink.style.display = "inline"
+    }
     const ql = document.getElementById("admin-qar-link")
     if (ql) ql.style.display = "inline"
+    const adminMenu = document.getElementById("admin-menu")
+    if (adminMenu) {
+      adminMenu.style.display = "block"
+    }
   } else {
     const uc = document.getElementById("upload-card")
     if (uc) uc.style.display = "none"
@@ -189,7 +206,8 @@ async function onDownload(fileId) {
 }
 
 async function onLogout() {
-  const btn = document.getElementById("btn-logout")
+  const btn = document.getElementById("btn-logout-sidebar")
+  if (!btn) return
   btn.disabled = true
   try {
     await apiFetch("/api/auth/logout", { method: "POST" })
@@ -230,10 +248,19 @@ async function main() {
   await checkTransportCrypto()
   
   if (me.role === "admin") {
-    document.getElementById("btn-upload").addEventListener("click", onUpload)
+    const btnUpload = document.getElementById("btn-upload")
+    if (btnUpload) {
+      btnUpload.addEventListener("click", onUpload)
+    }
   }
-  document.getElementById("btn-save-dept").addEventListener("click", onSaveDept)
-  document.getElementById("btn-logout").addEventListener("click", onLogout)
+  const btnSaveDept = document.getElementById("btn-save-dept")
+  if (btnSaveDept) {
+    btnSaveDept.addEventListener("click", onSaveDept)
+  }
+  const btnLogoutSidebar = document.getElementById("btn-logout-sidebar")
+  if (btnLogoutSidebar) {
+    btnLogoutSidebar.addEventListener("click", onLogout)
+  }
   await refreshList()
 }
 
