@@ -89,6 +89,22 @@ async function refreshList() {
   }
 }
 
+async function refreshStats() {
+  try {
+    const stats = await TransportCrypto.fetch("/api/files/stats", { method: "GET" })
+    const totalUploadsEl = document.getElementById("total-uploads")
+    const availableDataEl = document.getElementById("available-data")
+    if (totalUploadsEl) {
+      totalUploadsEl.textContent = stats.totalUploads || 0
+    }
+    if (availableDataEl) {
+      availableDataEl.textContent = stats.availableData || 0
+    }
+  } catch (e) {
+    console.error("Failed to refresh stats:", e)
+  }
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -184,6 +200,7 @@ async function onUpload() {
     const targetInput = document.getElementById("target-person-no")
     if (targetInput) targetInput.value = ""
     await refreshList()
+    await refreshStats()
   } catch (e) {
     showToast("上传失败", e.message, "danger")
     out.textContent = ""
@@ -246,6 +263,7 @@ async function main() {
   if (!me) return
   
   await checkTransportCrypto()
+  await refreshStats()
   
   if (me.role === "admin") {
     const btnUpload = document.getElementById("btn-upload")

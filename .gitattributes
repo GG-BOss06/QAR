@@ -1,0 +1,11 @@
+# 前端模板文件 - 不计入语言统计
+securitysystem/用户前端模板/** linguist-vendored
+securitysystem/用户前端模板/** linguist-documentation
+
+# 第三方库文件 - 不计入语言统计
+**/*.min.js linguist-vendored
+**/vendor/** linguist-vendored
+**/webgl/** linguist-vendored
+
+# 文档文件
+*.md linguist-documentation

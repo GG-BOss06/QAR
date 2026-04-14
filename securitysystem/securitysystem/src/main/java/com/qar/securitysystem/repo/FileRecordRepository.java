@@ -9,4 +9,8 @@ public interface FileRecordRepository extends JpaRepository<FileRecordEntity, St
     List<FileRecordEntity> findAllByOwnerIdOrderByCreatedAtDesc(String ownerId);
 
     List<FileRecordEntity> findAllByOwnerIdInOrderByCreatedAtDesc(List<String> ownerIds);
+
+    long countByOwnerId(String ownerId);
+
+    long countByOwnerIdIn(List<String> ownerIds);
 }

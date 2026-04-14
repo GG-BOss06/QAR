@@ -7,6 +7,7 @@ import com.qar.securitysystem.dto.PlainFilePayloadResponse;
 import com.qar.securitysystem.model.FileRecordEntity;
 import com.qar.securitysystem.model.PersonRecordEntity;
 import com.qar.securitysystem.model.UserEntity;
+import com.qar.securitysystem.repo.FileRecordRepository;
 import com.qar.securitysystem.repo.PersonRecordRepository;
 import com.qar.securitysystem.repo.UserRepository;
 import com.qar.securitysystem.security.AppPrincipal;
@@ -34,11 +35,13 @@ public class FilesController {
     private final FileService fileService;
     private final UserRepository userRepository;
     private final PersonRecordRepository personRecordRepository;
+    private final FileRecordRepository fileRecordRepository;
 
-    public FilesController(FileService fileService, UserRepository userRepository, PersonRecordRepository personRecordRepository) {
+    public FilesController(FileService fileService, UserRepository userRepository, PersonRecordRepository personRecordRepository, FileRecordRepository fileRecordRepository) {
         this.fileService = fileService;
         this.userRepository = userRepository;
         this.personRecordRepository = personRecordRepository;
+        this.fileRecordRepository = fileRecordRepository;
     }
 
     @Deprecated
@@ -193,5 +196,32 @@ public class FilesController {
             }
         }
         return null;
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<?> stats(Authentication authentication) {
+        AppPrincipal p = SecurityUtil.requirePrincipal(authentication);
+        boolean isAdmin = p.getRole().name().equals("ADMIN");
+        
+        long totalUploads;
+        long availableData;
+        
+        if (isAdmin) {
+            totalUploads = fileRecordRepository.count();
+            availableData = totalUploads;
+        } else {
+            List<String> ownerIds = new java.util.ArrayList<>();
+            ownerIds.add(p.getUserId());
+            if (p.getPersonId() != null && !p.getPersonId().isBlank()) {
+                ownerIds.add(p.getPersonId());
+            }
+            totalUploads = fileRecordRepository.countByOwnerId(p.getUserId());
+            availableData = fileRecordRepository.countByOwnerIdIn(ownerIds);
+        }
+        
+        return ResponseEntity.ok(Map.of(
+            "totalUploads", totalUploads,
+            "availableData", availableData
+        ));
     }
 }
