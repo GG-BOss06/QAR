@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayInputStream;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -26,10 +25,12 @@ import java.util.Map;
 @Service
 public class FlightXlsxService {
     private final FileRecordRepository fileRecordRepository;
+    private final FileService fileService;
     private final DataFormatter formatter = new DataFormatter(Locale.CHINA);
 
-    public FlightXlsxService(FileRecordRepository fileRecordRepository) {
+    public FlightXlsxService(FileRecordRepository fileRecordRepository, FileService fileService) {
         this.fileRecordRepository = fileRecordRepository;
+        this.fileService = fileService;
     }
 
     public List<FlightXlsxFileResponse> listXlsxFiles() {
@@ -67,7 +68,10 @@ public class FlightXlsxService {
             throw new IllegalArgumentException("file_empty");
         }
 
-        byte[] bytes = Base64.getDecoder().decode(r.getEncryptedData());
+        byte[] bytes = fileService.decryptForDownload(r);
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("file_empty");
+        }
         List<FlightXlsxPreviewResponse.SheetPreview> sheets = parseAllSheets(bytes, maxRowsPerSheet);
 
         FlightXlsxPreviewResponse resp = new FlightXlsxPreviewResponse();
