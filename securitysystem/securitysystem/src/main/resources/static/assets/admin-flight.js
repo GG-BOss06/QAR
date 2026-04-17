@@ -29,12 +29,29 @@ async function ensureAdmin() {
   }
   const mePill = document.getElementById("me-pill")
   if (mePill) {
-    mePill.textContent = me.emailOrUsername + " · " + me.role
+    const spanEl = mePill.querySelector("span")
+    if (spanEl) {
+      spanEl.textContent = me.emailOrUsername + " · " + me.role
+    }
   }
-  const mePillSidebar = document.getElementById("me-pill-sidebar")
-  if (mePillSidebar) {
-    mePillSidebar.textContent = me.emailOrUsername + " · " + me.role
+  const dropdownUserName = document.getElementById("dropdown-user-name")
+  const dropdownUserRole = document.getElementById("dropdown-user-role")
+  if (dropdownUserName) {
+    dropdownUserName.textContent = me.fullName || me.emailOrUsername || "-"
   }
+  if (dropdownUserRole) {
+    dropdownUserRole.textContent = me.role || "-"
+  }
+  const dropdownFullname = document.getElementById("dropdown-fullname")
+  const dropdownPersonno = document.getElementById("dropdown-personno")
+  const dropdownAirline = document.getElementById("dropdown-airline")
+  const dropdownPosition = document.getElementById("dropdown-position")
+  const dropdownDept = document.getElementById("dropdown-dept")
+  if (dropdownFullname) dropdownFullname.textContent = me.fullName || "-"
+  if (dropdownPersonno) dropdownPersonno.textContent = me.personNo || me.emailOrUsername || "-"
+  if (dropdownAirline) dropdownAirline.textContent = me.airline || "-"
+  if (dropdownPosition) dropdownPosition.textContent = me.positionTitle || "-"
+  if (dropdownDept) dropdownDept.textContent = me.department || "-"
   await TransportCrypto.ensureSession()
   return me
 }
@@ -254,16 +271,11 @@ async function loadPreview() {
 }
 
 async function onLogout() {
-  const btn = document.getElementById("btn-logout-sidebar")
-  if (!btn) return
-  btn.disabled = true
   try {
     await apiFetch("/api/auth/logout", { method: "POST" })
     location.href = "/auth"
   } catch (e) {
     showToast("退出失败", e.message, "danger")
-  } finally {
-    btn.disabled = false
   }
 }
 
@@ -280,10 +292,28 @@ function onResetFilters() {
 async function main() {
   const me = await ensureAdmin()
   if (!me) return
-  const btnLogout = document.getElementById("btn-logout-sidebar")
+  
+  const mePill = document.getElementById("me-pill")
+  const dropdownMenu = mePill ? mePill.querySelector(".dropdown-menu") : null
+  
+  if (mePill && dropdownMenu) {
+    mePill.addEventListener("click", function(e) {
+      e.stopPropagation()
+      dropdownMenu.classList.toggle("show")
+    })
+    
+    document.addEventListener("click", function(e) {
+      if (!mePill.contains(e.target)) {
+        dropdownMenu.classList.remove("show")
+      }
+    })
+  }
+  
+  const btnLogout = document.getElementById("btn-logout")
   if (btnLogout) {
     btnLogout.addEventListener("click", onLogout)
   }
+  
   const btnRefresh = document.getElementById("btn-refresh")
   if (btnRefresh) {
     btnRefresh.addEventListener("click", refreshFiles)

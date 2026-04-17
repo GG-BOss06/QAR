@@ -5,17 +5,9 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>数据工作台 - QAR 安全系统</title>
     <link rel="stylesheet" href="/assets/app.css" />
-    <link rel="stylesheet" href="/assets/page-animations.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="/assets/webgl/three.min.js"></script>
-    <script src="/assets/webgl/Detector.js"></script>
-    <script src="/assets/clouds.js"></script>
-    <script src="/assets/sakura.js"></script>
     <script src="/assets/sidebar.js"></script>
-    <script src="/assets/snap.svg-min.js"></script>
-    <script src="/assets/svgLoader.js"></script>
-    <script src="/assets/page-transition.js?v=4"></script>
     <script src="/assets/classie.js?v=2"></script>
     <script src="/assets/sidebarEffects.js?v=2"></script>
   </head>
@@ -46,15 +38,6 @@
               <li><a href="/admin-flight.html"><i class="fa fa-plane"></i> 飞行数据管理</a></li>
             </ul>
           </li>
-          <li class="sidebar-header">用户</li>
-          <li>
-            <a href="#" id="me-pill-sidebar">未登录</a>
-          </li>
-          <li>
-            <a href="#" id="btn-logout-sidebar">
-              <i class="fa fa-sign-out"></i> 退出
-            </a>
-          </li>
         </ul>
       </nav>
 
@@ -67,9 +50,46 @@
               <button data-effect="st-effect-12" class="menu-trigger">☰</button>
               <div class="brand">QAR 安全系统</div>
               <div class="spacer"></div>
-              <div id="me-pill" class="pill">
+              <div id="me-pill" class="pill dropdown-toggle">
                 <span>加载中...</span>
+                <i class="fa fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i>
+                <div class="dropdown-menu dropdown-menu-wide">
+                  <div class="dropdown-header">
+                    <div class="dropdown-user-name" id="dropdown-user-name">-</div>
+                    <div class="dropdown-user-role" id="dropdown-user-role">-</div>
+                  </div>
+                  <div class="dropdown-divider"></div>
+                  <div class="dropdown-info-grid">
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">姓名</span>
+                      <span class="dropdown-info-value" id="dropdown-fullname">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">工号</span>
+                      <span class="dropdown-info-value" id="dropdown-personno">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">航司</span>
+                      <span class="dropdown-info-value" id="dropdown-airline">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">职位</span>
+                      <span class="dropdown-info-value" id="dropdown-position">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">部门</span>
+                      <span class="dropdown-info-value" id="dropdown-dept">-</span>
+                    </div>
+                  </div>
+                  <div class="dropdown-divider"></div>
+                  <a href="/feedback?subject=%E6%A1%A3%E6%A1%88%E4%BF%A1%E6%81%AF%E6%9C%89%E8%AF%AF" class="dropdown-item">
+                    <i class="fa fa-exclamation-circle"></i> 信息有误
+                  </a>
+                </div>
               </div>
+              <button class="btn btn-logout" id="btn-logout" title="退出登录">
+                <i class="fa fa-sign-out"></i>
+              </button>
             </div>
           </div>
 
@@ -101,46 +121,6 @@
                 <div class="card-b">
                   <div class="stats-value" id="available-data">0</div>
                   <div class="stats-desc">可下载数据</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card" id="profile-card" style="margin-bottom:24px">
-              <div class="card-h">
-                <div class="row" style="justify-content:space-between;align-items:center">
-                  <div>
-                    <div class="h2" style="margin:0">个人信息</div>
-                    <div class="muted">姓名与工号锁定；可修改所属部门</div>
-                  </div>
-                  <a class="btn" href="/feedback?subject=%E6%A1%A3%E6%A1%88%E4%BF%A1%E6%81%AF%E6%9C%89%E8%AF%AF">信息有误</a>
-                </div>
-              </div>
-              <div class="card-b">
-                <div class="grid" style="grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:16px">
-                  <div class="col">
-                    <div class="label">姓名</div>
-                    <input class="input" id="pf-name" disabled />
-                  </div>
-                  <div class="col">
-                    <div class="label">工号</div>
-                    <input class="input" id="pf-no" disabled />
-                  </div>
-                  <div class="col">
-                    <div class="label">航司</div>
-                    <input class="input" id="pf-airline" disabled />
-                  </div>
-                  <div class="col">
-                    <div class="label">职位</div>
-                    <input class="input" id="pf-position" disabled />
-                  </div>
-                  <div class="col">
-                    <div class="label">所属部门（可修改）</div>
-                    <input class="input" id="pf-dept" />
-                  </div>
-                  <div class="col">
-                    <div class="label">&nbsp;</div>
-                    <button class="btn" id="btn-save-dept">保存部门信息</button>
-                  </div>
                 </div>
               </div>
             </div>
