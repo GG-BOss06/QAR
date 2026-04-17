@@ -7,22 +7,29 @@ async function ensureMe() {
   }
   const mePill = document.getElementById("me-pill")
   if (mePill) {
-    mePill.textContent = me.emailOrUsername + " · " + me.role
+    const spanEl = mePill.querySelector("span")
+    if (spanEl) {
+      spanEl.textContent = me.emailOrUsername + " · " + me.role
+    }
   }
-  const mePillSidebar = document.getElementById("me-pill-sidebar")
-  if (mePillSidebar) {
-    mePillSidebar.textContent = me.emailOrUsername + " · " + me.role
+  const dropdownUserName = document.getElementById("dropdown-user-name")
+  const dropdownUserRole = document.getElementById("dropdown-user-role")
+  if (dropdownUserName) {
+    dropdownUserName.textContent = me.fullName || me.emailOrUsername || "-"
   }
-  const pfName = document.getElementById("pf-name")
-  const pfNo = document.getElementById("pf-no")
-  const pfAirline = document.getElementById("pf-airline")
-  const pfPos = document.getElementById("pf-position")
-  const pfDept = document.getElementById("pf-dept")
-  if (pfName) pfName.value = me.fullName || "-"
-  if (pfNo) pfNo.value = me.personNo || me.emailOrUsername || "-"
-  if (pfAirline) pfAirline.value = me.airline || "-"
-  if (pfPos) pfPos.value = me.positionTitle || "-"
-  if (pfDept) pfDept.value = me.department || ""
+  if (dropdownUserRole) {
+    dropdownUserRole.textContent = me.role || "-"
+  }
+  const dropdownFullname = document.getElementById("dropdown-fullname")
+  const dropdownPersonno = document.getElementById("dropdown-personno")
+  const dropdownAirline = document.getElementById("dropdown-airline")
+  const dropdownPosition = document.getElementById("dropdown-position")
+  const dropdownDept = document.getElementById("dropdown-dept")
+  if (dropdownFullname) dropdownFullname.textContent = me.fullName || "-"
+  if (dropdownPersonno) dropdownPersonno.textContent = me.personNo || me.emailOrUsername || "-"
+  if (dropdownAirline) dropdownAirline.textContent = me.airline || "-"
+  if (dropdownPosition) dropdownPosition.textContent = me.positionTitle || "-"
+  if (dropdownDept) dropdownDept.textContent = me.department || "-"
   if (me.role === "admin") {
     const adminLink = document.getElementById("admin-link")
     if (adminLink) {
@@ -223,44 +230,38 @@ async function onDownload(fileId) {
 }
 
 async function onLogout() {
-  const btn = document.getElementById("btn-logout-sidebar")
-  if (!btn) return
-  btn.disabled = true
   try {
     await apiFetch("/api/auth/logout", { method: "POST" })
     location.href = "/auth"
   } catch (e) {
     showToast("退出失败", e.message, "danger")
-  } finally {
-    btn.disabled = false
-  }
-}
-
-async function onSaveDept() {
-  const btn = document.getElementById("btn-save-dept")
-  const input = document.getElementById("pf-dept")
-  if (!btn || !input) return
-  const dept = (input.value || "").trim()
-  btn.disabled = true
-  try {
-    await apiFetch("/api/profile/department", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ department: dept })
-    })
-    showToast("已保存", "部门信息已更新", "success")
-    const me = await loadMe()
-    if (me && input) input.value = me.department || dept
-  } catch (e) {
-    showToast("保存失败", e.message, "danger")
-  } finally {
-    btn.disabled = false
   }
 }
 
 async function main() {
   const me = await ensureMe()
   if (!me) return
+  
+  const mePill = document.getElementById("me-pill")
+  const dropdownMenu = mePill ? mePill.querySelector(".dropdown-menu") : null
+  
+  if (mePill && dropdownMenu) {
+    mePill.addEventListener("click", function(e) {
+      e.stopPropagation()
+      dropdownMenu.classList.toggle("show")
+    })
+    
+    document.addEventListener("click", function(e) {
+      if (!mePill.contains(e.target)) {
+        dropdownMenu.classList.remove("show")
+      }
+    })
+  }
+  
+  const btnLogout = document.getElementById("btn-logout")
+  if (btnLogout) {
+    btnLogout.addEventListener("click", onLogout)
+  }
   
   await checkTransportCrypto()
   await refreshStats()
@@ -270,14 +271,6 @@ async function main() {
     if (btnUpload) {
       btnUpload.addEventListener("click", onUpload)
     }
-  }
-  const btnSaveDept = document.getElementById("btn-save-dept")
-  if (btnSaveDept) {
-    btnSaveDept.addEventListener("click", onSaveDept)
-  }
-  const btnLogoutSidebar = document.getElementById("btn-logout-sidebar")
-  if (btnLogoutSidebar) {
-    btnLogoutSidebar.addEventListener("click", onLogout)
   }
   await refreshList()
 }

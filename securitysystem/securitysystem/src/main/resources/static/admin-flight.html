@@ -5,17 +5,9 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>飞行数据管理 - QAR 安全系统</title>
     <link rel="stylesheet" href="/assets/app.css" />
-    <link rel="stylesheet" href="/assets/page-animations.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="/assets/webgl/three.min.js"></script>
-    <script src="/assets/webgl/Detector.js"></script>
-    <script src="/assets/clouds.js"></script>
-    <script src="/assets/sakura.js"></script>
     <script src="/assets/sidebar.js"></script>
-    <script src="/assets/snap.svg-min.js"></script>
-    <script src="/assets/svgLoader.js"></script>
-    <script src="/assets/page-transition.js?v=4"></script>
     <script src="/assets/classie.js?v=2"></script>
     <script src="/assets/sidebarEffects.js?v=2"></script>
     <style>
@@ -55,15 +47,6 @@
               <li class="active"><a href="/admin-flight.html"><i class="fa fa-plane"></i> 飞行数据管理</a></li>
             </ul>
           </li>
-          <li class="sidebar-header">用户</li>
-          <li>
-            <a href="#" id="me-pill-sidebar">未登录</a>
-          </li>
-          <li>
-            <a href="#" id="btn-logout-sidebar">
-              <i class="fa fa-sign-out"></i> 退出
-            </a>
-          </li>
         </ul>
       </nav>
 
@@ -76,9 +59,42 @@
               <button data-effect="st-effect-12" class="menu-trigger">☰</button>
               <div class="brand">QAR 安全系统</div>
               <div class="spacer"></div>
-              <div id="me-pill" class="pill">
+              <div id="me-pill" class="pill dropdown-toggle">
                 <span>加载中...</span>
+                <i class="fa fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i>
+                <div class="dropdown-menu dropdown-menu-wide">
+                  <div class="dropdown-header">
+                    <div class="dropdown-user-name" id="dropdown-user-name">-</div>
+                    <div class="dropdown-user-role" id="dropdown-user-role">-</div>
+                  </div>
+                  <div class="dropdown-divider"></div>
+                  <div class="dropdown-info-grid">
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">姓名</span>
+                      <span class="dropdown-info-value" id="dropdown-fullname">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">工号</span>
+                      <span class="dropdown-info-value" id="dropdown-personno">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">航司</span>
+                      <span class="dropdown-info-value" id="dropdown-airline">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">职位</span>
+                      <span class="dropdown-info-value" id="dropdown-position">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">部门</span>
+                      <span class="dropdown-info-value" id="dropdown-dept">-</span>
+                    </div>
+                  </div>
+                </div>
               </div>
+              <button class="btn btn-logout" id="btn-logout" title="退出登录">
+                <i class="fa fa-sign-out"></i>
+              </button>
             </div>
           </div>
 

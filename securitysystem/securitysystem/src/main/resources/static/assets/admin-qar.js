@@ -9,7 +9,31 @@ async function ensureAdmin() {
     location.href = "/workbench"
     return null
   }
-  document.getElementById("me-pill").textContent = me.emailOrUsername + " · " + me.role
+  const mePill = document.getElementById("me-pill")
+  if (mePill) {
+    const spanEl = mePill.querySelector("span")
+    if (spanEl) {
+      spanEl.textContent = me.emailOrUsername + " · " + me.role
+    }
+  }
+  const dropdownUserName = document.getElementById("dropdown-user-name")
+  const dropdownUserRole = document.getElementById("dropdown-user-role")
+  if (dropdownUserName) {
+    dropdownUserName.textContent = me.fullName || me.emailOrUsername || "-"
+  }
+  if (dropdownUserRole) {
+    dropdownUserRole.textContent = me.role || "-"
+  }
+  const dropdownFullname = document.getElementById("dropdown-fullname")
+  const dropdownPersonno = document.getElementById("dropdown-personno")
+  const dropdownAirline = document.getElementById("dropdown-airline")
+  const dropdownPosition = document.getElementById("dropdown-position")
+  const dropdownDept = document.getElementById("dropdown-dept")
+  if (dropdownFullname) dropdownFullname.textContent = me.fullName || "-"
+  if (dropdownPersonno) dropdownPersonno.textContent = me.personNo || me.emailOrUsername || "-"
+  if (dropdownAirline) dropdownAirline.textContent = me.airline || "-"
+  if (dropdownPosition) dropdownPosition.textContent = me.positionTitle || "-"
+  if (dropdownDept) dropdownDept.textContent = me.department || "-"
   await TransportCrypto.ensureSession()
   return me
 }
@@ -203,22 +227,39 @@ async function onImportXlsx() {
 }
 
 async function onLogout() {
-  const btn = document.getElementById("btn-logout")
-  btn.disabled = true
   try {
     await apiFetch("/api/auth/logout", { method: "POST" })
     location.href = "/auth"
   } catch (e) {
     showToast("退出失败", e.message, "danger")
-  } finally {
-    btn.disabled = false
   }
 }
 
 async function main() {
   const me = await ensureAdmin()
   if (!me) return
-  document.getElementById("btn-logout").addEventListener("click", onLogout)
+  
+  const mePill = document.getElementById("me-pill")
+  const dropdownMenu = mePill ? mePill.querySelector(".dropdown-menu") : null
+  
+  if (mePill && dropdownMenu) {
+    mePill.addEventListener("click", function(e) {
+      e.stopPropagation()
+      dropdownMenu.classList.toggle("show")
+    })
+    
+    document.addEventListener("click", function(e) {
+      if (!mePill.contains(e.target)) {
+        dropdownMenu.classList.remove("show")
+      }
+    })
+  }
+  
+  const btnLogout = document.getElementById("btn-logout")
+  if (btnLogout) {
+    btnLogout.addEventListener("click", onLogout)
+  }
+  
   document.getElementById("btn-refresh").addEventListener("click", refresh)
   document.getElementById("btn-save-row").addEventListener("click", onSaveRow)
   document.getElementById("btn-preview").addEventListener("click", onPreviewXlsx)
