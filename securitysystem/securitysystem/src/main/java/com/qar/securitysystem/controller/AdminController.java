@@ -2,12 +2,15 @@ package com.qar.securitysystem.controller;
 
 import com.qar.securitysystem.dto.AdminFeedbackUpdateRequest;
 import com.qar.securitysystem.dto.AdminAccountRequestReview;
+import com.qar.securitysystem.dto.AdminFilePolicyUpdateRequest;
+import com.qar.securitysystem.dto.AdminReasonRequest;
 import com.qar.securitysystem.model.FileRecordEntity;
 import com.qar.securitysystem.model.PersonRecordEntity;
 import com.qar.securitysystem.repo.PersonRecordRepository;
 import com.qar.securitysystem.security.AppPrincipal;
 import com.qar.securitysystem.service.AdminService;
 import com.qar.securitysystem.service.FileService;
+import com.qar.securitysystem.service.LabeAdminService;
 import com.qar.securitysystem.util.SecurityUtil;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -34,11 +37,13 @@ public class AdminController {
     private final AdminService adminService;
     private final FileService fileService;
     private final PersonRecordRepository personRecordRepository;
+    private final LabeAdminService labeAdminService;
 
-    public AdminController(AdminService adminService, FileService fileService, PersonRecordRepository personRecordRepository) {
+    public AdminController(AdminService adminService, FileService fileService, PersonRecordRepository personRecordRepository, LabeAdminService labeAdminService) {
         this.adminService = adminService;
         this.fileService = fileService;
         this.personRecordRepository = personRecordRepository;
+        this.labeAdminService = labeAdminService;
     }
 
     @GetMapping("/users")
@@ -84,11 +89,63 @@ public class AdminController {
         return ResponseEntity.ok(adminService.listAllFiles());
     }
 
+    @GetMapping("/labe/overview")
+    public ResponseEntity<?> labeOverview() {
+        return ResponseEntity.ok(labeAdminService.getOverview());
+    }
+
+    @GetMapping("/labe/authorities")
+    public ResponseEntity<?> labeAuthorities() {
+        return ResponseEntity.ok(labeAdminService.listAuthorities());
+    }
+
+    @GetMapping("/labe/persons")
+    public ResponseEntity<?> labePersons() {
+        return ResponseEntity.ok(labeAdminService.listPersonViews());
+    }
+
+    @PostMapping("/labe/persons/{id}/issue")
+    public ResponseEntity<?> issueLabeBundle(@PathVariable("id") String id) {
+        try {
+            return ResponseEntity.ok(adminService.issueLatticeBundleForPerson(id, "admin_manual_issue"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("code", 400, "message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/labe/persons/{id}/freeze")
+    public ResponseEntity<?> freezeLabeAccess(@PathVariable("id") String id, @RequestBody(required = false) AdminReasonRequest req) {
+        try {
+            adminService.freezeLatticeAccessForPerson(id, req == null ? null : req.getReason());
+            return ResponseEntity.ok(java.util.Map.of("code", 200, "message", "ok"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("code", 400, "message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/labe/persons/{id}/restore")
+    public ResponseEntity<?> restoreLabeAccess(@PathVariable("id") String id, @RequestBody(required = false) AdminReasonRequest req) {
+        try {
+            return ResponseEntity.ok(adminService.restoreLatticeAccessForPerson(id, req == null ? null : req.getReason()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("code", 400, "message", e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/files/{id}")
     public ResponseEntity<?> deleteFile(@PathVariable("id") String id) {
         try {
             adminService.deleteFile(id);
             return ResponseEntity.ok(java.util.Map.of("code", 200, "message", "ok"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("code", 400, "message", e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/files/{id}/policy")
+    public ResponseEntity<?> rewrapFilePolicy(@PathVariable("id") String id, @RequestBody AdminFilePolicyUpdateRequest req) {
+        try {
+            return ResponseEntity.ok(adminService.rewrapFilePolicy(id, req == null ? null : req.getPolicy()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(java.util.Map.of("code", 400, "message", e.getMessage()));
         }
@@ -153,7 +210,7 @@ public class AdminController {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             ZipOutputStream zos = new ZipOutputStream(bos);
             for (FileRecordEntity r : all) {
-                byte[] raw = fileService.decryptForDownload(r);
+                byte[] raw = fileService.decryptForAdminExport(r);
                 String entryName = r.getOwnerId() + "/" + r.getId() + "_" + safeFilename(r.getOriginalName());
                 ZipEntry entry = new ZipEntry(entryName);
                 zos.putNextEntry(entry);

@@ -1,5 +1,7 @@
 package com.qar.securitysystem.dto;
 
+import java.util.List;
+
 public class UserResponse {
     private String id;
     private String emailOrUsername;
@@ -10,6 +12,15 @@ public class UserResponse {
     private String department;
     private String airline;
     private String positionTitle;
+    private String personCategory;
+    private String dutyDomain;
+    private String fleetGroup;
+    private String clearanceLevel;
+    private boolean accessEnabled;
+    private String accessStatus;
+    private String accessRevokedAt;
+    private String accessRevokedReason;
+    private List<String> attributes;
 
     public String getId() {
         return id;
@@ -81,5 +92,77 @@ public class UserResponse {
 
     public void setPositionTitle(String positionTitle) {
         this.positionTitle = positionTitle;
+    }
+
+    public String getPersonCategory() {
+        return personCategory;
+    }
+
+    public void setPersonCategory(String personCategory) {
+        this.personCategory = personCategory;
+    }
+
+    public String getDutyDomain() {
+        return dutyDomain;
+    }
+
+    public void setDutyDomain(String dutyDomain) {
+        this.dutyDomain = dutyDomain;
+    }
+
+    public String getFleetGroup() {
+        return fleetGroup;
+    }
+
+    public void setFleetGroup(String fleetGroup) {
+        this.fleetGroup = fleetGroup;
+    }
+
+    public String getClearanceLevel() {
+        return clearanceLevel;
+    }
+
+    public void setClearanceLevel(String clearanceLevel) {
+        this.clearanceLevel = clearanceLevel;
+    }
+
+    public boolean isAccessEnabled() {
+        return accessEnabled;
+    }
+
+    public void setAccessEnabled(boolean accessEnabled) {
+        this.accessEnabled = accessEnabled;
+    }
+
+    public String getAccessStatus() {
+        return accessStatus;
+    }
+
+    public void setAccessStatus(String accessStatus) {
+        this.accessStatus = accessStatus;
+    }
+
+    public String getAccessRevokedAt() {
+        return accessRevokedAt;
+    }
+
+    public void setAccessRevokedAt(String accessRevokedAt) {
+        this.accessRevokedAt = accessRevokedAt;
+    }
+
+    public String getAccessRevokedReason() {
+        return accessRevokedReason;
+    }
+
+    public void setAccessRevokedReason(String accessRevokedReason) {
+        this.accessRevokedReason = accessRevokedReason;
+    }
+
+    public List<String> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(List<String> attributes) {
+        this.attributes = attributes;
     }
 }

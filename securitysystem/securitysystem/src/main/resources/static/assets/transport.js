@@ -36,6 +36,22 @@
     serverPublicKey: null
   }
 
+  function withTimeout(promise, ms, code) {
+    return new Promise((resolve, reject) => {
+      const timer = window.setTimeout(() => reject(new Error(code || "timeout")), ms)
+      promise.then(
+        value => {
+          window.clearTimeout(timer)
+          resolve(value)
+        },
+        err => {
+          window.clearTimeout(timer)
+          reject(err)
+        }
+      )
+    })
+  }
+
   function resetSession() {
     state.serverPublicKey = null
   }
@@ -49,12 +65,13 @@
   }
 
   async function ensureSession() {
+    if (!window.crypto || !window.crypto.subtle) return
     if (state.serverPublicKey) return
-    const handshake = await apiFetch("/api/transport/handshake", {
+    const handshake = await withTimeout(apiFetch("/api/transport/handshake", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ protocol: state.protocol })
-    })
+    }), 8000, "transport_handshake_timeout")
     state.serverPublicKey = await crypto.subtle.importKey(
       "spki",
       b64ToBuf(handshake.serverPublicKey),
@@ -81,11 +98,34 @@
   }
 
   async function fetchEncrypted(path, opts, allowRetry = true) {
+    if (!window.crypto || !window.crypto.subtle) {
+      const method = (opts && opts.method ? opts.method : "GET").toUpperCase()
+      const headers = Object.assign({ "Accept": "application/json" }, (opts && opts.headers) ? opts.headers : {})
+      let body = opts && opts.body ? opts.body : null
+      if (body != null && typeof body !== "string") body = JSON.stringify(body)
+      const init = Object.assign({}, opts || {}, { credentials: "include", method, headers })
+      if (body != null) {
+        headers["Content-Type"] = "application/json"
+        init.body = body
+      }
+      const res = await fetch(path, init)
+      const ct = (res.headers.get("content-type") || "").toLowerCase()
+      let data = null
+      if (ct.includes("application/json")) {
+        data = await res.json().catch(() => null)
+      } else {
+        data = await res.text().catch(() => "")
+      }
+      if (!res.ok) {
+        const msg = data && data.message ? data.message : (typeof data === "string" ? data : "request_failed")
+        throw new Error(mapErrorMessage(msg))
+      }
+      return data
+    }
+
     await ensureSession()
     const method = (opts && opts.method ? opts.method : "GET").toUpperCase()
     const headers = Object.assign({ "Accept": "application/json" }, (opts && opts.headers) ? opts.headers : {})
-    const csrf = window.__csrf || null
-    if (csrf && csrf.headerName && csrf.token) headers[csrf.headerName] = csrf.token
     headers["X-QAR-Encrypted"] = "1"
     headers["X-QAR-Transport"] = state.protocol
 

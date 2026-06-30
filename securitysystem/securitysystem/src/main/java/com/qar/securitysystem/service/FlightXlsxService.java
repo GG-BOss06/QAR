@@ -68,7 +68,7 @@ public class FlightXlsxService {
             throw new IllegalArgumentException("file_empty");
         }
 
-        byte[] bytes = fileService.decryptForDownload(r);
+        byte[] bytes = fileService.decryptForAdminPreview(r);
         if (bytes == null || bytes.length == 0) {
             throw new IllegalArgumentException("file_empty");
         }

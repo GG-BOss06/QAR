@@ -31,6 +31,10 @@ public class FileRecordEntity {
     private String policy;
 
     @Lob
+    @Column(name = "aad_policy_binding")
+    private String aadPolicyBinding;
+
+    @Lob
     @Column(name = "wrapped_key")
     private String wrappedKey;
 
@@ -97,6 +101,14 @@ public class FileRecordEntity {
         this.wrappedKey = wrappedKey;
     }
 
+    public String getAadPolicyBinding() {
+        return aadPolicyBinding;
+    }
+
+    public void setAadPolicyBinding(String aadPolicyBinding) {
+        this.aadPolicyBinding = aadPolicyBinding;
+    }
+
     public String getEncryptedData() {
         return encryptedData;
     }
@@ -113,4 +125,3 @@ public class FileRecordEntity {
         this.createdAt = createdAt;
     }
 }
-

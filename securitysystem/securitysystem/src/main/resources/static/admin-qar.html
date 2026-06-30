@@ -3,11 +3,170 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>QAR 表格管理 - QAR 安全系统</title>
-    <script>
-      location.replace("/admin-flight.html")
-    </script>
+    <title>QAR表格管理 - QAR安全系统</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/assets/sidebar.js"></script>
+    <script src="/assets/classie.js?v=2"></script>
+    <script src="/assets/sidebarEffects.js?v=2"></script>
+    <style>
+      .table th.sortable { cursor: pointer; user-select: none; position: relative; padding-right: 20px; }
+      .table th.sortable:after { content: '↕'; position: absolute; right: 4px; opacity: 0.3; }
+      .table th.sortable.asc:after { content: '↑'; opacity: 1; }
+      .table th.sortable.desc:after { content: '↓'; opacity: 1; }
+      .row-input { width: 100%; min-height: 120px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    </style>
   </head>
   <body>
+    <div id="st-container" class="st-container">
+      <nav class="st-menu st-effect-12" id="menu-12">
+        <h2>QAR安全系统</h2>
+        <ul class="sidebar-menu">
+          <li>
+            <a href="/workbench">
+              <i class="fa fa-dashboard"></i> 工作台
+            </a>
+          </li>
+          <li>
+            <a href="/feedback">
+              <i class="fa fa-envelope"></i> 反馈与联系
+            </a>
+          </li>
+          <li class="active">
+            <a href="#">
+              <i class="fa fa-cogs"></i> 管理后台
+              <i class="fa fa-angle-down"></i>
+            </a>
+            <ul class="sub-menu">
+              <li><a href="/admin"><i class="fa fa-home"></i> 管理首页</a></li>
+              <li><a href="/admin-data.html"><i class="fa fa-database"></i> 数据管理</a></li>
+              <li><a href="/admin-flight.html"><i class="fa fa-plane"></i> 飞行数据管理</a></li>
+              <li class="active"><a href="/admin-qar.html"><i class="fa fa-table"></i> QAR表格管理</a></li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+      <div class="st-pusher">
+        <div class="st-content">
+          <div class="nav">
+            <div class="nav-inner">
+              <button data-effect="st-effect-12" class="menu-trigger">☰</button>
+              <div class="brand">QAR安全系统</div>
+              <div class="spacer"></div>
+              <div id="me-pill" class="pill dropdown-toggle">
+                <span>加载中...</span>
+                <i class="fa fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i>
+                <div class="dropdown-menu dropdown-menu-wide">
+                  <div class="dropdown-header">
+                    <div class="dropdown-user-name" id="dropdown-user-name">-</div>
+                    <div class="dropdown-user-role" id="dropdown-user-role">-</div>
+                  </div>
+                  <div class="dropdown-divider"></div>
+                  <div class="dropdown-info-grid">
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">姓名</span>
+                      <span class="dropdown-info-value" id="dropdown-fullname">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">工号</span>
+                      <span class="dropdown-info-value" id="dropdown-personno">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">航司</span>
+                      <span class="dropdown-info-value" id="dropdown-airline">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">职位</span>
+                      <span class="dropdown-info-value" id="dropdown-position">-</span>
+                    </div>
+                    <div class="dropdown-info-item">
+                      <span class="dropdown-info-label">部门</span>
+                      <span class="dropdown-info-value" id="dropdown-dept">-</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-logout" id="btn-logout" title="退出登录">
+                <i class="fa fa-sign-out"></i>
+              </button>
+            </div>
+          </div>
+          <div class="container">
+            <div class="card" style="margin-bottom: 16px;">
+              <div class="card-h">
+                <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+                  <div>
+                    <div class="h2">QAR表格管理</div>
+                    <div class="muted">用于预览、导入和直接维护解析后的QAR表格数据；这一页不再跳转，恢复为独立管理页。</div>
+                  </div>
+                  <div class="row" style="gap:8px;flex-wrap:wrap">
+                    <button class="btn" id="btn-refresh">刷新表格</button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-b">
+                <div class="grid" style="grid-template-columns:1.2fr .8fr;gap:20px">
+                  <div class="card" style="margin:0">
+                    <div class="card-h">
+                      <div class="h2">已入库QAR数据</div>
+                    </div>
+                    <div class="card-b">
+                      <div style="overflow:auto">
+                        <table class="table" id="qar-table">
+                          <thead></thead>
+                          <tbody></tbody>
+                        </table>
+                      </div>
+                      <div id="empty-msg" class="muted" style="display:none; text-align:center; padding: 20px;">暂无QAR数据</div>
+                    </div>
+                  </div>
+                  <div class="col" style="gap:16px">
+                    <div class="card" style="margin:0">
+                      <div class="card-h">
+                        <div class="h2">手工写入</div>
+                      </div>
+                      <div class="card-b col">
+                        <div class="label">记录ID（留空为新增）</div>
+                        <input class="input" id="row-id" placeholder="可留空" />
+                        <div class="label">JSON内容</div>
+                        <textarea class="input row-input" id="row-json" placeholder='{"航班号":"CA1234","时间":"2026-06-30T08:00:00Z"}'></textarea>
+                        <button class="btn primary" id="btn-save-row">保存记录</button>
+                      </div>
+                    </div>
+                    <div class="card" style="margin:0">
+                      <div class="card-h">
+                        <div class="h2">Excel预览与导入</div>
+                      </div>
+                      <div class="card-b col">
+                        <input class="input" type="file" id="xlsx-file" accept=".xlsx,.xls" />
+                        <div class="row" style="gap:8px;flex-wrap:wrap">
+                          <button class="btn" id="btn-preview">预览表格</button>
+                          <button class="btn primary" id="btn-import">导入表格</button>
+                        </div>
+                        <div class="muted" id="preview-info">未解析到数据</div>
+                        <div style="overflow:auto">
+                          <table class="table" id="preview-table">
+                            <thead></thead>
+                            <tbody></tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="toast">
+      <div class="t">提示</div>
+      <div class="m"></div>
+    </div>
+    <script src="/assets/common.js"></script>
+    <script src="/assets/transport.js"></script>
+    <script src="/assets/admin-qar.js"></script>
   </body>
 </html>

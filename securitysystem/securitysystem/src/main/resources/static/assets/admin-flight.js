@@ -246,16 +246,41 @@ async function refreshFiles() {
   }
 
   const wanted = state.fileId && state.files.find(x => x.id === state.fileId) ? state.fileId : state.files[0].id
-  sel.value = wanted
-  state.fileId = wanted
-  await loadPreview()
+  const orderedIds = [wanted].concat(state.files.map(x => x.id).filter(id => id !== wanted))
+  let loaded = false
+  let lastError = null
+  for (const id of orderedIds) {
+    sel.value = id
+    state.fileId = id
+    const result = await loadPreview(true)
+    if (result.ok) {
+      loaded = true
+      break
+    }
+    lastError = result.error
+  }
+  if (!loaded) {
+    state.sheets = []
+    renderAll()
+    if (lastError) {
+      showToast("加载失败", lastError.message || "当前文件无法预览", "danger")
+    }
+  }
 }
 
-async function loadPreview() {
+function normalizePreviewErrorMessage(err) {
+  const msg = (err && err.message) || ""
+  if (msg === "failed_to_unwrap_lattice_key") {
+    return "当前文件的L-ABE密钥无法解封装，可能是历史权威材料不匹配，请重新上传或迁移该文件"
+  }
+  return msg || "当前文件无法预览"
+}
+
+async function loadPreview(silent = false) {
   if (!state.fileId) {
     state.sheets = []
     renderAll()
-    return
+    return { ok: false, error: new Error("未选择文件") }
   }
   try {
     const resp = await TransportCrypto.fetch(`/api/admin/flight-xlsx/files/${encodeURIComponent(state.fileId)}/preview?maxRows=20000`, { method: "GET" })
@@ -263,10 +288,15 @@ async function loadPreview() {
     state.sheets = resp.sheets || []
     state.sheetIndex = 0
     renderAll()
+    return { ok: true }
   } catch (e) {
     state.sheets = []
     renderAll()
-    showToast("加载失败", e.message, "danger")
+    const normalized = new Error(normalizePreviewErrorMessage(e))
+    if (!silent) {
+      showToast("加载失败", normalized.message, "danger")
+    }
+    return { ok: false, error: normalized }
   }
 }
 

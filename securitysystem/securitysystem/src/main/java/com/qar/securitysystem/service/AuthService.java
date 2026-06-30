@@ -148,6 +148,13 @@ public class AuthService {
         return latest != null && latest.getStatus() == AccountRequestStatus.PENDING;
     }
 
+    public UserEntity findUserById(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return null;
+        }
+        return userRepository.findById(userId).orElse(null);
+    }
+
     private static String normalize(String v) {
         if (v == null) {
             return "";

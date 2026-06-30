@@ -35,6 +35,15 @@ public class UserEntity {
     @Column(name = "public_key", length = 2048)
     private String publicKey;
 
+    @Column(name = "access_enabled")
+    private Boolean accessEnabled;
+
+    @Column(name = "access_revoked_at")
+    private Instant accessRevokedAt;
+
+    @Column(name = "access_revoked_reason", length = 240)
+    private String accessRevokedReason;
+
     public String getId() {
         return id;
     }
@@ -89,5 +98,29 @@ public class UserEntity {
 
     public void setPublicKey(String publicKey) {
         this.publicKey = publicKey;
+    }
+
+    public Boolean getAccessEnabled() {
+        return accessEnabled;
+    }
+
+    public void setAccessEnabled(Boolean accessEnabled) {
+        this.accessEnabled = accessEnabled;
+    }
+
+    public Instant getAccessRevokedAt() {
+        return accessRevokedAt;
+    }
+
+    public void setAccessRevokedAt(Instant accessRevokedAt) {
+        this.accessRevokedAt = accessRevokedAt;
+    }
+
+    public String getAccessRevokedReason() {
+        return accessRevokedReason;
+    }
+
+    public void setAccessRevokedReason(String accessRevokedReason) {
+        this.accessRevokedReason = accessRevokedReason;
     }
 }

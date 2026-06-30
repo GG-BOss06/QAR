@@ -151,9 +151,52 @@ public class PersonSeeder implements ApplicationRunner {
         e.setDepartment(dept == null || dept.isBlank() ? null : dept);
         e.setAirline(airline == null || airline.isBlank() ? null : airline);
         e.setPositionTitle(positionTitle == null || positionTitle.isBlank() ? null : positionTitle);
+        e.setPersonCategory(inferPersonCategory(positionTitle));
+        e.setDutyDomain(inferDutyDomain(dept, positionTitle));
+        e.setFleetGroup(inferFleetGroup(airline));
+        e.setClearanceLevel("L1");
         e.setCreatedAt(Instant.now());
         log.info("Saving person: personNo={}, fullName={}, fullName bytes={}",
                 personNo, fullName, java.util.Arrays.toString(fullName.getBytes(StandardCharsets.UTF_8)));
         return personRecordRepository.save(e);
+    }
+
+    private String inferPersonCategory(String positionTitle) {
+        String v = positionTitle == null ? "" : positionTitle.trim();
+        if (v.contains("机长") || v.contains("副驾驶")) {
+            return "飞行机组";
+        }
+        if (v.contains("签派")) {
+            return "运行控制";
+        }
+        if (v.contains("机务")) {
+            return "机务维护";
+        }
+        if (v.contains("安监") || v.contains("监察")) {
+            return "安全监察";
+        }
+        return "通用人员";
+    }
+
+    private String inferDutyDomain(String department, String positionTitle) {
+        String dept = department == null ? "" : department.trim();
+        String pos = positionTitle == null ? "" : positionTitle.trim();
+        if (dept.contains("安监") || pos.contains("监察")) {
+            return "安全监管";
+        }
+        if (dept.contains("飞行") || pos.contains("机长") || pos.contains("副驾驶")) {
+            return "飞行运行";
+        }
+        if (dept.contains("机务") || pos.contains("机务")) {
+            return "维护保障";
+        }
+        if (pos.contains("签派")) {
+            return "运行控制";
+        }
+        return "综合管理";
+    }
+
+    private String inferFleetGroup(String airline) {
+        return airline == null || airline.isBlank() ? "通用机队" : airline.trim() + "机队";
     }
 }

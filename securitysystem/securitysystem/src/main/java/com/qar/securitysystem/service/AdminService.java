@@ -1,5 +1,7 @@
 package com.qar.securitysystem.service;
 
+import com.qar.securitysystem.abe.AttributeAuthorityService;
+import com.qar.securitysystem.abe.lattice.LatticeUserSecretKeyService;
 import com.qar.securitysystem.dto.FileRecordResponse;
 import com.qar.securitysystem.dto.FeedbackResponse;
 import com.qar.securitysystem.dto.AccountRequestResponse;
@@ -22,26 +24,42 @@ import com.qar.securitysystem.repo.PersonRecordRepository;
 import com.qar.securitysystem.repo.UserRepository;
 import com.qar.securitysystem.util.IdUtil;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class AdminService {
     private final UserRepository userRepository;
+    private final FileService fileService;
     private final FileRecordRepository fileRecordRepository;
     private final FeedbackRepository feedbackRepository;
     private final PersonRecordRepository personRecordRepository;
     private final AccountRequestRepository accountRequestRepository;
     private final AuditLogRepository auditLogRepository;
+    private final AttributeAuthorityService attributeAuthorityService;
+    private final LatticeUserSecretKeyService latticeUserSecretKeyService;
 
-    public AdminService(UserRepository userRepository, FileRecordRepository fileRecordRepository, FeedbackRepository feedbackRepository, PersonRecordRepository personRecordRepository, AccountRequestRepository accountRequestRepository, AuditLogRepository auditLogRepository) {
+    public AdminService(UserRepository userRepository,
+                        FileService fileService,
+                        FileRecordRepository fileRecordRepository,
+                        FeedbackRepository feedbackRepository,
+                        PersonRecordRepository personRecordRepository,
+                        AccountRequestRepository accountRequestRepository,
+                        AuditLogRepository auditLogRepository,
+                        AttributeAuthorityService attributeAuthorityService,
+                        LatticeUserSecretKeyService latticeUserSecretKeyService) {
         this.userRepository = userRepository;
+        this.fileService = fileService;
         this.fileRecordRepository = fileRecordRepository;
         this.feedbackRepository = feedbackRepository;
         this.personRecordRepository = personRecordRepository;
         this.accountRequestRepository = accountRequestRepository;
         this.auditLogRepository = auditLogRepository;
+        this.attributeAuthorityService = attributeAuthorityService;
+        this.latticeUserSecretKeyService = latticeUserSecretKeyService;
     }
 
     public List<UserResponse> listUsers() {
@@ -88,6 +106,7 @@ public class AdminService {
         return accountRequestRepository.findAllByStatusOrderByCreatedAtDesc(AccountRequestStatus.PENDING).stream().map(this::toAccountRequestResponse).toList();
     }
 
+    @Transactional
     public AccountRequestResponse approveAccountRequest(String id, String adminId, String adminNote) {
         AccountRequestEntity e = accountRequestRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("not_found"));
         if (e.getStatus() != AccountRequestStatus.PENDING) {
@@ -108,7 +127,9 @@ public class AdminService {
         u.setRole(UserRole.USER);
         u.setCreatedAt(Instant.now());
         u.setPublicKey(e.getPublicKey());
+        u.setAccessEnabled(true);
         userRepository.save(u);
+        latticeUserSecretKeyService.issueForUser(u, "account_approved");
 
         e.setStatus(AccountRequestStatus.APPROVED);
         e.setReviewedAt(Instant.now());
@@ -151,15 +172,27 @@ public class AdminService {
         return personRecordRepository.save(person);
     }
 
+    @Transactional
     public PersonRecordEntity updatePerson(String id, PersonRecordEntity person) {
         PersonRecordEntity existing = personRecordRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("not_found"));
+        Set<String> beforeAttributes = attributeAuthorityService.resolvePersonAttributes(existing);
         if (person.getFullName() != null) existing.setFullName(person.getFullName());
         if (person.getPhone() != null) existing.setPhone(person.getPhone());
         if (person.getDepartment() != null) existing.setDepartment(person.getDepartment());
         if (person.getAirline() != null) existing.setAirline(person.getAirline());
         if (person.getPositionTitle() != null) existing.setPositionTitle(person.getPositionTitle());
+        if (person.getPersonCategory() != null) existing.setPersonCategory(person.getPersonCategory());
+        if (person.getDutyDomain() != null) existing.setDutyDomain(person.getDutyDomain());
+        if (person.getFleetGroup() != null) existing.setFleetGroup(person.getFleetGroup());
+        if (person.getClearanceLevel() != null) existing.setClearanceLevel(person.getClearanceLevel());
         if (person.getIdLast4() != null) existing.setIdLast4(person.getIdLast4());
-        return personRecordRepository.save(existing);
+        PersonRecordEntity saved = personRecordRepository.save(existing);
+        Set<String> afterAttributes = attributeAuthorityService.resolvePersonAttributes(saved);
+        if (!beforeAttributes.equals(afterAttributes)) {
+            userRepository.findByPersonId(saved.getId())
+                    .ifPresent(user -> latticeUserSecretKeyService.issueForUser(user, "person_attributes_updated"));
+        }
+        return saved;
     }
 
     public void deletePerson(String id) {
@@ -176,6 +209,42 @@ public class AdminService {
         fileRecordRepository.deleteById(id);
     }
 
+    public FileRecordResponse rewrapFilePolicy(String id, String policy) {
+        return fileService.rewrapFilePolicy(id, policy);
+    }
+
+    @Transactional
+    public LatticeUserSecretKeyService.UserSecretBundle issueLatticeBundleForPerson(String personId, String reason) {
+        PersonRecordEntity person = personRecordRepository.findById(personId).orElseThrow(() -> new IllegalArgumentException("not_found"));
+        UserEntity user = userRepository.findByPersonId(person.getId()).orElseThrow(() -> new IllegalArgumentException("account_not_ready"));
+        return latticeUserSecretKeyService.issueForUser(user, reason == null || reason.isBlank() ? "admin_manual_issue" : reason.trim());
+    }
+
+    @Transactional
+    public void freezeLatticeAccessForPerson(String personId, String reason) {
+        PersonRecordEntity person = personRecordRepository.findById(personId).orElseThrow(() -> new IllegalArgumentException("not_found"));
+        UserEntity user = userRepository.findByPersonId(person.getId()).orElseThrow(() -> new IllegalArgumentException("account_not_ready"));
+        if (user.getRole() == UserRole.ADMIN) {
+            throw new IllegalArgumentException("admin_access_cannot_be_frozen");
+        }
+        user.setAccessEnabled(false);
+        user.setAccessRevokedAt(Instant.now());
+        user.setAccessRevokedReason(normalizeAccessReason(reason, "admin_access_frozen"));
+        userRepository.save(user);
+        latticeUserSecretKeyService.revokeActiveBundle(user.getId(), user.getAccessRevokedReason());
+    }
+
+    @Transactional
+    public LatticeUserSecretKeyService.UserSecretBundle restoreLatticeAccessForPerson(String personId, String reason) {
+        PersonRecordEntity person = personRecordRepository.findById(personId).orElseThrow(() -> new IllegalArgumentException("not_found"));
+        UserEntity user = userRepository.findByPersonId(person.getId()).orElseThrow(() -> new IllegalArgumentException("account_not_ready"));
+        user.setAccessEnabled(true);
+        user.setAccessRevokedAt(null);
+        user.setAccessRevokedReason(null);
+        userRepository.save(user);
+        return latticeUserSecretKeyService.issueForUser(user, normalizeAccessReason(reason, "admin_access_restored"));
+    }
+
     private UserResponse toUserResponse(UserEntity u) {
         UserResponse resp = new UserResponse();
         resp.setId(u.getId());
@@ -189,7 +258,13 @@ public class AdminService {
         FileRecordResponse resp = new FileRecordResponse();
         resp.setId(r.getId());
         resp.setOwnerId(r.getOwnerId());
-        PersonRecordEntity pr = personRecordRepository.findById(r.getOwnerId()).orElse(null);
+        PersonRecordEntity pr = null;
+        UserEntity ownerUser = userRepository.findById(r.getOwnerId()).orElse(null);
+        if (ownerUser != null && ownerUser.getPersonId() != null) {
+            pr = personRecordRepository.findById(ownerUser.getPersonId()).orElse(null);
+        } else {
+            pr = personRecordRepository.findById(r.getOwnerId()).orElse(null);
+        }
         if (pr != null) {
             resp.setOwnerLabel(pr.getPersonNo() + " " + pr.getFullName());
         }
@@ -234,6 +309,17 @@ public class AdminService {
             v = v.substring(0, 400);
         }
         return v;
+    }
+
+    private String normalizeAccessReason(String note, String fallback) {
+        if (note == null || note.isBlank()) {
+            return fallback;
+        }
+        String value = note.trim();
+        if (value.length() > 240) {
+            value = value.substring(0, 240);
+        }
+        return value;
     }
 
     private AuditLogResponse toAuditLogResponse(AuditLogEntity e) {

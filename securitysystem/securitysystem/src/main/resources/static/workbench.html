@@ -35,7 +35,9 @@
             <ul class="sub-menu">
               <li><a href="/admin"><i class="fa fa-home"></i> 管理首页</a></li>
               <li><a href="/admin-data.html"><i class="fa fa-database"></i> 数据管理</a></li>
+              <li><a href="/admin-labe.html"><i class="fa fa-shield"></i> L-ABE总览</a></li>
               <li><a href="/admin-flight.html"><i class="fa fa-plane"></i> 飞行数据管理</a></li>
+              <li><a href="/admin-qar.html"><i class="fa fa-table"></i> QAR表格管理</a></li>
             </ul>
           </li>
         </ul>
@@ -123,13 +125,22 @@
                   <div class="stats-desc">可下载数据</div>
                 </div>
               </div>
+              <div class="card stats-card">
+                <div class="card-h">
+                  <div class="h2">L-ABE主链路</div>
+                </div>
+                <div class="card-b">
+                  <div id="labe-status" class="badge">检查中...</div>
+                  <div class="stats-desc">格基属性密钥封装状态</div>
+                </div>
+              </div>
             </div>
 
             <div class="grid" id="grid" style="gap:24px">
               <div class="card" id="upload-card">
                 <div class="card-h">
                   <div class="h2">文件上传</div>
-                  <div class="muted">服务器端存储明文；传输过程中使用TLS协议加密</div>
+                  <div class="muted">文件内容使用AES-GCM加密，文件AES密钥使用L-ABE封装并按属性策略控制访问</div>
                 </div>
                 <div class="card-b col">
                   <div class="col">
@@ -139,9 +150,66 @@
                       <div class="file-upload-hint">点击或拖拽文件到此处</div>
                     </div>
                   </div>
-                  <div class="col">
-                    <div class="label">访问策略（L-ABE策略）</div>
-                    <input class="input" id="policy" placeholder="role:user" />
+                  <div class="col" style="gap:10px">
+                    <div class="label">访问策略配置</div>
+                    <div class="row" id="policy-template-group" style="gap:8px;flex-wrap:wrap">
+                      <button type="button" class="btn policy-template-btn primary" data-template="personal">个人专属</button>
+                      <button type="button" class="btn policy-template-btn" data-template="department">部门共享</button>
+                      <button type="button" class="btn policy-template-btn" data-template="fleet">机队共享</button>
+                      <button type="button" class="btn policy-template-btn" data-template="safety">安全审查</button>
+                      <button type="button" class="btn policy-template-btn" data-template="admin">仅管理员</button>
+                    </div>
+                    <div class="muted" id="policy-template-hint">个人专属模板会绑定指定工号；共享类模板按属性范围授权，可多选。</div>
+                    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                      <div class="col">
+                        <div class="label">数据分类</div>
+                        <select class="input" id="policy-data-type">
+                          <option value="qar">QAR数据</option>
+                          <option value="flight-report">飞行报告</option>
+                          <option value="safety-event">安全事件</option>
+                        </select>
+                      </div>
+                      <div class="col policy-group" id="policy-group-department">
+                        <div class="label">部门范围（可多选）</div>
+                        <div class="policy-option-list" id="policy-departments"></div>
+                      </div>
+                      <div class="col policy-group" id="policy-group-person-category">
+                        <div class="label">人员分类（可多选）</div>
+                        <div class="policy-option-list" id="policy-person-categories"></div>
+                      </div>
+                      <div class="col policy-group" id="policy-group-duty-domain">
+                        <div class="label">职责域（可多选）</div>
+                        <div class="policy-option-list" id="policy-duty-domains"></div>
+                      </div>
+                      <div class="col policy-group" id="policy-group-fleet">
+                        <div class="label">机队范围（可多选）</div>
+                        <div class="policy-option-list" id="policy-fleet-groups"></div>
+                      </div>
+                      <div class="col">
+                        <div class="label">密级</div>
+                        <select class="input" id="policy-clearance-level">
+                          <option value="">不限</option>
+                          <option value="L1">L1</option>
+                          <option value="L2">L2</option>
+                          <option value="L3">L3</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col">
+                      <div class="label">策略预览</div>
+                      <input class="input" id="policy-preview" readonly />
+                      <div class="muted">使用模板按钮自动生成策略，上传时后台按该策略控制AES密钥访问。</div>
+                    </div>
+                    <div class="grid" style="grid-template-columns: 1.2fr 1fr; gap: 12px;">
+                      <div class="col">
+                        <div class="label">策略自然语言解释</div>
+                        <div class="info-panel" id="policy-natural-language">系统将根据你选择的模板和属性范围自动解释访问对象。</div>
+                      </div>
+                      <div class="col">
+                        <div class="label">策略树预览</div>
+                        <pre class="tree-preview" id="policy-tree-preview">ROOT</pre>
+                      </div>
+                    </div>
                   </div>
                   <div class="col">
                     <div class="label">归属工号（给对应用户下载）</div>
@@ -168,6 +236,7 @@
                       <thead>
                         <tr>
                           <th>文件名</th>
+                          <th>封装</th>
                           <th>大小</th>
                           <th>策略</th>
                           <th>上传时间</th>
@@ -178,6 +247,32 @@
                     </table>
                   </div>
                   <div class="muted" id="empty" style="display:none;margin-top:10px">暂无数据</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid" style="gap:24px;margin-top:24px;grid-template-columns:1fr 1fr">
+              <div class="card">
+                <div class="card-h">
+                  <div class="h2">我的属性集合</div>
+                  <div class="muted">这些属性将决定你是否满足L-ABE访问策略</div>
+                </div>
+                <div class="card-b">
+                  <div class="chip-list" id="me-attributes"></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-h">
+                  <div class="h2">当前封装说明</div>
+                  <div class="muted">新上传文件默认走`LABE_LATTICE_BC:`封装</div>
+                </div>
+                <div class="card-b">
+                  <div class="info-panel">
+                    <div><strong>内容层：</strong>AES-GCM</div>
+                    <div><strong>密钥层：</strong>多权威格基CP-ABE研究原型</div>
+                    <div><strong>策略层：</strong>交互式模板映射为AND/OR属性树</div>
+                    <div><strong>兼容层：</strong>旧`LABE_PROTO_BC:`和`RSA`历史数据可继续读取</div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -35,6 +35,18 @@ public class PersonRecordEntity {
     @Column(name = "position_title", length = 120)
     private String positionTitle;
 
+    @Column(name = "person_category", length = 120)
+    private String personCategory;
+
+    @Column(name = "duty_domain", length = 120)
+    private String dutyDomain;
+
+    @Column(name = "fleet_group", length = 120)
+    private String fleetGroup;
+
+    @Column(name = "clearance_level", length = 120)
+    private String clearanceLevel;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -100,6 +112,38 @@ public class PersonRecordEntity {
 
     public void setPositionTitle(String positionTitle) {
         this.positionTitle = positionTitle;
+    }
+
+    public String getPersonCategory() {
+        return personCategory;
+    }
+
+    public void setPersonCategory(String personCategory) {
+        this.personCategory = personCategory;
+    }
+
+    public String getDutyDomain() {
+        return dutyDomain;
+    }
+
+    public void setDutyDomain(String dutyDomain) {
+        this.dutyDomain = dutyDomain;
+    }
+
+    public String getFleetGroup() {
+        return fleetGroup;
+    }
+
+    public void setFleetGroup(String fleetGroup) {
+        this.fleetGroup = fleetGroup;
+    }
+
+    public String getClearanceLevel() {
+        return clearanceLevel;
+    }
+
+    public void setClearanceLevel(String clearanceLevel) {
+        this.clearanceLevel = clearanceLevel;
     }
 
     public Instant getCreatedAt() {

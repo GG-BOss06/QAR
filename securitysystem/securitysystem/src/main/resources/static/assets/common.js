@@ -1,9 +1,5 @@
 async function apiFetch(path, opts) {
-  const csrf = window.__csrf || null
   const headers = Object.assign({"Accept": "application/json"}, opts && opts.headers ? opts.headers : {})
-  if (csrf && csrf.headerName && csrf.token) {
-    headers[csrf.headerName] = csrf.token
-  }
   const res = await fetch(path, Object.assign({ credentials: "include", headers }, opts || {}))
   const ct = res.headers.get("content-type") || ""
   const data = ct.includes("application/json") ? await res.json().catch(() => null) : await res.text().catch(() => "")
@@ -37,6 +33,7 @@ function mapErrorMessage(msg) {
     "data_too_large_or_invalid": "上传数据过大或格式不合法，请检查后重试",
     "wrapped_key_required": "缺少密钥封装数据，请刷新页面后重试",
     "transport_wrapped_key_required": "传输密钥缺失，已建议重新握手，请重试上传",
+    "transport_handshake_timeout": "传输握手超时，请确认服务端已启动并重新登录后重试",
     "unsupported_transport": "当前传输加密协议不可用，请刷新页面后重试",
     "invalid_credentials": "账号或密码错误",
     "unauthorized": "未登录或会话已过期，请重新登录",
@@ -62,12 +59,8 @@ function showToast(title, message, variant) {
 }
 
 async function initCsrf() {
-  try {
-    const token = await apiFetch("/api/csrf", { method: "GET" })
-    window.__csrf = token
-  } catch (e) {
-    window.__csrf = null
-  }
+  window.__csrf = null
+  return null
 }
 
 async function loadMe() {

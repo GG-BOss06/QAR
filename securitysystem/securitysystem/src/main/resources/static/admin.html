@@ -35,7 +35,9 @@
             <ul class="sub-menu">
               <li class="active"><a href="/admin"><i class="fa fa-home"></i> 管理首页</a></li>
               <li><a href="/admin-data.html"><i class="fa fa-database"></i> 数据管理</a></li>
+              <li><a href="/admin-labe.html"><i class="fa fa-shield"></i> L-ABE总览</a></li>
               <li><a href="/admin-flight.html"><i class="fa fa-plane"></i> 飞行数据管理</a></li>
+              <li><a href="/admin-qar.html"><i class="fa fa-table"></i> QAR表格管理</a></li>
             </ul>
           </li>
         </ul>
@@ -124,6 +126,45 @@
             <div class="stats-desc">需要回复的反馈</div>
           </div>
         </div>
+        <div class="card stats-card">
+          <div class="h2">L-ABE新链路</div>
+          <div class="card-b">
+            <div class="stats-value" id="labe-lattice-files">0</div>
+            <div class="stats-desc">已采用LABE_LATTICE_BC封装</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-h">
+          <div class="row" style="justify-content:space-between">
+            <div>
+              <div class="h2">L-ABE状态总览</div>
+              <div class="muted">展示权威数量、用户属性密钥生成情况以及新旧封装迁移状态</div>
+            </div>
+            <a class="btn primary" href="/admin-labe.html">打开L-ABE总览</a>
+          </div>
+        </div>
+        <div class="card-b">
+          <div class="mini-stats-grid">
+            <div class="mini-stat">
+              <div class="mini-stat-label">属性权威</div>
+              <div class="mini-stat-value" id="labe-authority-count">0</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-label">属性密钥材料</div>
+              <div class="mini-stat-value" id="labe-bundle-count">0</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-label">原型旧格式</div>
+              <div class="mini-stat-value" id="labe-prototype-files">0</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-label">历史兼容格式</div>
+              <div class="mini-stat-value" id="labe-legacy-files">0</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="grid" style="grid-template-columns:1fr">
@@ -185,7 +226,7 @@
             <div class="row" style="justify-content:space-between">
               <div>
                 <div class="h2">全量数据管理</div>
-                <div class="muted">查看全部记录并导出全部解密数据（zip）</div>
+                <div class="muted">查看全部记录、调整L-ABE访问策略，并只重封装文件AES密钥</div>
               </div>
               <button class="btn primary" id="btn-export">导出全部数据</button>
             </div>
@@ -198,6 +239,7 @@
                     <th>记录ID</th>
                     <th>归属用户</th>
                     <th>文件名</th>
+                    <th>封装类型</th>
                     <th>大小</th>
                     <th>策略</th>
                     <th>上传时间</th>

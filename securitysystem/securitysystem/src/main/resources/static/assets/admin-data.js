@@ -1,4 +1,5 @@
 let allPersons = []
+let selectedPersonId = null
 
 let personSortField = "createdAt"
 let personSortOrder = "desc"
@@ -44,9 +45,13 @@ async function ensureAdmin() {
 
 async function refreshPersons() {
   try {
-    const rows = await apiFetch("/api/admin/persons", { method: "GET" })
+    const rows = await apiFetch("/api/admin/labe/persons", { method: "GET" })
     allPersons = rows || []
     applyPersonFiltersAndSort()
+    if (!selectedPersonId && allPersons.length) {
+      selectedPersonId = allPersons[0].id
+    }
+    renderSelectedPerson()
   } catch (e) {
     showToast("加载人员数据失败", e.message, "danger")
   }
@@ -63,7 +68,12 @@ function applyPersonFiltersAndSort() {
       (p.fullName || "").toLowerCase().includes(keyword) ||
       (p.department || "").toLowerCase().includes(keyword) ||
       (p.airline || "").toLowerCase().includes(keyword) ||
-      (p.positionTitle || "").toLowerCase().includes(keyword)
+      (p.positionTitle || "").toLowerCase().includes(keyword) ||
+      (p.personCategory || "").toLowerCase().includes(keyword) ||
+      (p.dutyDomain || "").toLowerCase().includes(keyword) ||
+      (p.fleetGroup || "").toLowerCase().includes(keyword) ||
+      (p.clearanceLevel || "").toLowerCase().includes(keyword) ||
+      (p.attributes || []).join(" ").toLowerCase().includes(keyword)
 
     let matchesDate = true
     if (p.createdAt) {
@@ -103,14 +113,19 @@ function renderPersonTable(data) {
 
   for (const r of data) {
     const tr = document.createElement("tr")
-    tr.innerHTML = "<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class='actions'></td>"
+    tr.innerHTML = "<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class='actions'></td>"
     tr.children[0].textContent = r.personNo
     tr.children[1].textContent = r.fullName
     tr.children[2].textContent = r.airline || "-"
     tr.children[3].textContent = r.positionTitle || "-"
     tr.children[4].textContent = r.department || "-"
-    tr.children[5].textContent = r.phone || "-"
-    tr.children[6].textContent = (r.createdAt || "").replace("T", " ").replace("Z", "").slice(0, 16)
+    tr.children[5].textContent = r.personCategory || "-"
+    tr.children[6].textContent = r.dutyDomain || "-"
+    tr.children[7].textContent = r.fleetGroup || "-"
+    tr.children[8].textContent = r.clearanceLevel || "-"
+    tr.children[9].innerHTML = renderLabeStatus(r)
+    tr.children[10].textContent = r.phone || "-"
+    tr.children[11].textContent = (r.createdAt || "").replace("T", " ").replace("Z", "").slice(0, 16)
 
     const btnEdit = document.createElement("button")
     btnEdit.className = "btn"
@@ -124,9 +139,154 @@ function renderPersonTable(data) {
     btnDel.style.color = "white"
     btnDel.addEventListener("click", () => onDeletePerson(r))
 
-    tr.children[7].appendChild(btnEdit)
-    tr.children[7].appendChild(btnDel)
+    const btnIssue = document.createElement("button")
+    btnIssue.className = "btn primary"
+    btnIssue.textContent = r.secretBundleReady ? "重发钥" : "发钥"
+    btnIssue.disabled = !r.accountReady
+    btnIssue.addEventListener("click", () => onIssuePersonKey(r))
+
+    const btnAccess = document.createElement("button")
+    btnAccess.className = "btn"
+    btnAccess.textContent = r.accessEnabled ? "冻结访问" : "恢复访问"
+    btnAccess.disabled = !r.accountReady
+    btnAccess.addEventListener("click", () => r.accessEnabled ? onFreezePersonAccess(r) : onRestorePersonAccess(r))
+
+    tr.children[12].appendChild(btnEdit)
+    tr.children[12].appendChild(btnIssue)
+    tr.children[12].appendChild(btnAccess)
+    tr.children[12].appendChild(btnDel)
+    tr.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return
+      selectedPersonId = r.id
+      renderSelectedPerson()
+      applyPersonFiltersAndSort()
+    })
+    tr.classList.toggle("selected", selectedPersonId === r.id)
     tbody.appendChild(tr)
+  }
+}
+
+function renderLabeStatus(r) {
+  const account = r.accountReady ? "<span class='badge ok'>已建账号</span>" : "<span class='badge warn'>未建账号</span>"
+  const access = r.accessEnabled ? "<span class='badge ok'>访问正常</span>" : "<span class='badge danger'>已冻结</span>"
+  const version = r.secretBundleVersion ? ` V${r.secretBundleVersion}` : ""
+  const bundle = r.secretBundleReady ? `<span class='badge ok'>已发钥${version}</span>` : "<span class='badge'>未发钥</span>"
+  return account + " " + access + " " + bundle
+}
+
+function renderChipList(containerId, items) {
+  const box = document.getElementById(containerId)
+  if (!box) return
+  box.innerHTML = ""
+  const values = items && items.length ? items : ["暂无"]
+  for (const item of values) {
+    const span = document.createElement("span")
+    span.className = "chip" + (item === "暂无" ? " muted" : "")
+    span.textContent = item
+    box.appendChild(span)
+  }
+}
+
+function renderSelectedPerson() {
+  const person = allPersons.find(item => item.id === selectedPersonId) || null
+  const summary = document.getElementById("person-labe-summary")
+  if (!summary) return
+  if (!person) {
+    summary.textContent = "请选择一名人员查看L-ABE详情。"
+    renderChipList("person-labe-attributes", [])
+    renderChipList("person-labe-authorities", [])
+    return
+  }
+  const accountText = person.accountReady ? "已建立账号" : "未建立账号"
+  const keyText = person.secretBundleReady ? "属性密钥材料已生成" : "属性密钥材料尚未生成"
+  const accessText = person.accessEnabled ? "L-ABE访问已启用" : "L-ABE访问已冻结"
+  const versionText = person.secretBundleVersion ? `V${person.secretBundleVersion}` : "-"
+  const issuedAtText = person.secretBundleIssuedAt ? person.secretBundleIssuedAt.replace("T", " ").replace("Z", "").slice(0, 19) : "-"
+  const issuedReasonText = person.secretBundleIssuedReason || "-"
+  const digestText = person.secretBundleAttributeDigest || "-"
+  const revokedAtText = person.accessRevokedAt ? person.accessRevokedAt.replace("T", " ").replace("Z", "").slice(0, 19) : "-"
+  const revokedReasonText = person.accessRevokedReason || "-"
+  summary.innerHTML = `
+    <div><strong>${person.fullName || "-"}</strong>（${person.personNo || "-"}）</div>
+    <div>部门：${person.department || "-"}，职责域：${person.dutyDomain || "-"}</div>
+    <div>人员分类：${person.personCategory || "-"}，机队：${person.fleetGroup || "-"}</div>
+    <div>账号状态：${accountText}</div>
+    <div>访问状态：${accessText}</div>
+    <div>发钥状态：${keyText}</div>
+    <div>材料版本：${versionText}</div>
+    <div>最近发钥：${issuedAtText}</div>
+    <div>最近原因：${issuedReasonText}</div>
+    <div>最近冻结：${revokedAtText}</div>
+    <div>冻结原因：${revokedReasonText}</div>
+    <div>属性摘要：${digestText}</div>
+  `
+  renderChipList("person-labe-attributes", person.attributes || [])
+  renderChipList("person-labe-authorities", person.authorities || [])
+}
+
+async function onIssuePersonKey(person) {
+  if (!person) {
+    showToast("未选择人员", "请先选择一名人员", "danger")
+    return
+  }
+  if (!person.accountReady) {
+    showToast("无法发钥", "该人员尚未建立账号", "danger")
+    return
+  }
+  try {
+    await apiFetch("/api/admin/labe/persons/" + person.id + "/issue", { method: "POST" })
+    showToast("发钥完成", `${person.personNo} 已更新L-ABE材料`, "success")
+    await refreshPersons()
+  } catch (e) {
+    showToast("发钥失败", e.message, "danger")
+  }
+}
+
+async function onFreezePersonAccess(person) {
+  if (!person) {
+    showToast("未选择人员", "请先选择一名人员", "danger")
+    return
+  }
+  if (!person.accountReady) {
+    showToast("无法冻结", "该人员尚未建立账号", "danger")
+    return
+  }
+  const reason = window.prompt("输入冻结原因：", person.accessRevokedReason || "admin_access_frozen")
+  if (reason === null) return
+  try {
+    await apiFetch("/api/admin/labe/persons/" + person.id + "/freeze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason })
+    })
+    showToast("已冻结", `${person.personNo} 的L-ABE访问已冻结`, "success")
+    await refreshPersons()
+  } catch (e) {
+    showToast("冻结失败", e.message, "danger")
+  }
+}
+
+async function onRestorePersonAccess(person) {
+  if (!person) {
+    showToast("未选择人员", "请先选择一名人员", "danger")
+    return
+  }
+  if (!person.accountReady) {
+    showToast("无法恢复", "该人员尚未建立账号", "danger")
+    return
+  }
+  const reason = window.prompt("输入恢复原因：", "admin_access_restored")
+  if (reason === null) return
+  try {
+    await apiFetch("/api/admin/labe/persons/" + person.id + "/restore", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason })
+    })
+    showToast("已恢复", `${person.personNo} 已重新获得L-ABE访问`, "success")
+    await refreshPersons()
+  } catch (e) {
+    showToast("恢复失败", e.message, "danger")
   }
 }
 
@@ -139,6 +299,14 @@ async function onEditPerson(r) {
   if (pos === null) return
   const dep = window.prompt("部门：", r.department)
   if (dep === null) return
+  const personCategory = window.prompt("人员分类：", r.personCategory || "通用人员")
+  if (personCategory === null) return
+  const dutyDomain = window.prompt("职责域：", r.dutyDomain || "综合管理")
+  if (dutyDomain === null) return
+  const fleetGroup = window.prompt("机队：", r.fleetGroup || "通用机队")
+  if (fleetGroup === null) return
+  const clearanceLevel = window.prompt("密级：", r.clearanceLevel || "L1")
+  if (clearanceLevel === null) return
   const phone = window.prompt("电话：", r.phone)
   if (phone === null) return
 
@@ -151,6 +319,10 @@ async function onEditPerson(r) {
         airline: airline,
         positionTitle: pos,
         department: dep,
+        personCategory: personCategory,
+        dutyDomain: dutyDomain,
+        fleetGroup: fleetGroup,
+        clearanceLevel: clearanceLevel,
         phone: phone
       })
     })
@@ -182,6 +354,10 @@ async function onAddPerson() {
   const airline = window.prompt("航司：")
   const positionTitle = window.prompt("职位：")
   const department = window.prompt("部门：")
+  const personCategory = window.prompt("人员分类：", "通用人员")
+  const dutyDomain = window.prompt("职责域：", "综合管理")
+  const fleetGroup = window.prompt("机队：", "通用机队")
+  const clearanceLevel = window.prompt("密级：", "L1")
   const phone = window.prompt("电话：")
 
   try {
@@ -189,7 +365,7 @@ async function onAddPerson() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        personNo, fullName, idLast4, airline, positionTitle, department, phone
+        personNo, fullName, idLast4, airline, positionTitle, department, personCategory, dutyDomain, fleetGroup, clearanceLevel, phone
       })
     })
     showToast("已添加", personNo, "success")
@@ -440,6 +616,25 @@ async function main() {
   const btnAddPerson = document.getElementById("btn-add-person")
   if (btnAddPerson) {
     btnAddPerson.addEventListener("click", onAddPerson)
+  }
+  const btnIssuePersonKey = document.getElementById("btn-issue-person-key")
+  if (btnIssuePersonKey) {
+    btnIssuePersonKey.addEventListener("click", () => {
+      const person = allPersons.find(item => item.id === selectedPersonId) || null
+      onIssuePersonKey(person)
+    })
+  }
+  const btnTogglePersonAccess = document.getElementById("btn-toggle-person-access")
+  if (btnTogglePersonAccess) {
+    btnTogglePersonAccess.addEventListener("click", () => {
+      const person = allPersons.find(item => item.id === selectedPersonId) || null
+      if (!person) {
+        showToast("未选择人员", "请先选择一名人员", "danger")
+        return
+      }
+      if (person.accessEnabled) onFreezePersonAccess(person)
+      else onRestorePersonAccess(person)
+    })
   }
   const searchKeyword = document.getElementById("search-keyword")
   if (searchKeyword) {

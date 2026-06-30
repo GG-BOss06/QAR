@@ -1,5 +1,6 @@
 package com.qar.securitysystem.controller;
 
+import com.qar.securitysystem.abe.AccessPurpose;
 import com.qar.securitysystem.dto.EncryptedFileResponse;
 import com.qar.securitysystem.dto.EncryptedFileUploadRequest;
 import com.qar.securitysystem.dto.FileRecordResponse;
@@ -14,6 +15,7 @@ import com.qar.securitysystem.security.AppPrincipal;
 import com.qar.securitysystem.service.FileService;
 import com.qar.securitysystem.startup.PersonSeeder;
 import com.qar.securitysystem.util.SecurityUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,12 +29,20 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/files")
 public class FilesController {
+    private static final HttpClient DEBUG_HTTP = HttpClient.newHttpClient();
     private final FileService fileService;
     private final UserRepository userRepository;
     private final PersonRecordRepository personRecordRepository;
@@ -88,13 +98,12 @@ public class FilesController {
         }
         
         UserEntity uploader = userRepository.findById(p.getUserId()).orElseThrow();
-        UserEntity target = new UserEntity();
-        target.setId(uploader.getId());
         String targetPersonNo = request == null ? null : request.getPersonNo();
         if ((targetPersonNo == null || targetPersonNo.isBlank()) && request != null && request.getPolicy() != null) {
             targetPersonNo = extractPersonNoFromPolicy(request.getPolicy());
         }
 
+        UserEntity ownerToUse = uploader;
         if (targetPersonNo != null && !targetPersonNo.isBlank()) {
             String normalizedPersonNo = targetPersonNo.trim();
             PersonRecordEntity pr = personRecordRepository.findByPersonNo(normalizedPersonNo).orElse(null);
@@ -104,12 +113,27 @@ public class FilesController {
             if (pr == null) {
                 return ResponseEntity.badRequest().body(Map.of("code", 400, "message", "profile_not_found"));
             }
-            target.setPersonId(pr.getId());
-        } else {
-            target.setPersonId(uploader.getPersonId());
+            UserEntity targetUser = userRepository.findByPersonId(pr.getId()).orElse(null);
+            if (targetUser == null) {
+                targetUser = userRepository.findByAccount(normalizedPersonNo).orElse(null);
+            }
+            if (targetUser != null) {
+                ownerToUse = targetUser;
+            }
         }
-        
-        FileRecordResponse resp = fileService.storeEncrypted(target, request);
+
+        // #region debug-point B:upload-encrypted-request
+        debugReport("B", "FilesController.uploadEncrypted", "[DEBUG] received encrypted upload request", Map.of(
+                "adminUserId", safe(uploader.getId()),
+                "adminAccount", safe(uploader.getAccount()),
+                "targetPersonNo", safe(targetPersonNo),
+                "resolvedOwnerId", safe(ownerToUse.getId()),
+                "policy", request == null ? "" : safe(request.getPolicy()),
+                "originalName", request == null ? "" : safe(request.getOriginalName())
+        ));
+        // #endregion
+
+        FileRecordResponse resp = fileService.storeEncrypted(ownerToUse, request);
         return ResponseEntity.ok(resp);
     }
 
@@ -120,12 +144,8 @@ public class FilesController {
         if (isAdmin) {
             return ResponseEntity.ok(fileService.listAll());
         }
-        List<String> ownerIds = new java.util.ArrayList<>();
-        ownerIds.add(p.getUserId());
-        if (p.getPersonId() != null && !p.getPersonId().isBlank()) {
-            ownerIds.add(p.getPersonId());
-        }
-        return ResponseEntity.ok(fileService.listMine(ownerIds));
+        UserEntity user = userRepository.findById(p.getUserId()).orElseThrow();
+        return ResponseEntity.ok(fileService.listAccessible(user));
     }
 
     @Deprecated
@@ -137,10 +157,11 @@ public class FilesController {
             return ResponseEntity.status(404).build();
         }
         boolean isAdmin = p.getRole().name().equals("ADMIN");
-        if (!isAdmin && !r.getOwnerId().equals(p.getUserId()) && (p.getPersonId() == null || !r.getOwnerId().equals(p.getPersonId()))) {
+        UserEntity user = userRepository.findById(p.getUserId()).orElseThrow();
+        if (!isAdmin && !fileService.canUserAccess(r, user)) {
             return ResponseEntity.status(403).build();
         }
-        byte[] raw = fileService.decryptForDownload(r);
+        byte[] raw = fileService.decryptForUser(r, user, AccessPurpose.USER_DOWNLOAD);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + safeFilename(r.getOriginalName()) + "\"")
                 .contentType(MediaType.parseMediaType(r.getContentType() == null ? MediaType.APPLICATION_OCTET_STREAM_VALUE : r.getContentType()))
@@ -155,12 +176,11 @@ public class FilesController {
             return ResponseEntity.status(404).build();
         }
         boolean isAdmin = p.getRole().name().equals("ADMIN");
-        if (!isAdmin && !r.getOwnerId().equals(p.getUserId()) && (p.getPersonId() == null || !r.getOwnerId().equals(p.getPersonId()))) {
+        UserEntity user = userRepository.findById(p.getUserId()).orElseThrow();
+        if (!isAdmin && !fileService.canUserAccess(r, user)) {
             return ResponseEntity.status(403).build();
         }
-
-        UserEntity user = userRepository.findById(p.getUserId()).orElseThrow();
-        EncryptedFileResponse resp = fileService.getEncryptedDataForUser(r, user);
+        EncryptedFileResponse resp = fileService.getEncryptedDataForUser(r, user, AccessPurpose.USER_DOWNLOAD);
         return ResponseEntity.ok(resp);
     }
 
@@ -172,10 +192,11 @@ public class FilesController {
             return ResponseEntity.status(404).build();
         }
         boolean isAdmin = p.getRole().name().equals("ADMIN");
-        if (!isAdmin && !r.getOwnerId().equals(p.getUserId()) && (p.getPersonId() == null || !r.getOwnerId().equals(p.getPersonId()))) {
+        UserEntity user = userRepository.findById(p.getUserId()).orElseThrow();
+        if (!isAdmin && !fileService.canUserAccess(r, user)) {
             return ResponseEntity.status(403).build();
         }
-        byte[] raw = fileService.decryptForDownload(r);
+        byte[] raw = fileService.decryptForUser(r, user, AccessPurpose.USER_PAYLOAD);
         PlainFilePayloadResponse resp = new PlainFilePayloadResponse();
         resp.setDataBase64(java.util.Base64.getEncoder().encodeToString(raw));
         resp.setOriginalName(r.getOriginalName() == null ? null : r.getOriginalName().replace("\u0000", "").replace("\r", " ").replace("\n", " ").trim());
@@ -218,18 +239,60 @@ public class FilesController {
             totalUploads = fileRecordRepository.count();
             availableData = totalUploads;
         } else {
-            List<String> ownerIds = new java.util.ArrayList<>();
-            ownerIds.add(p.getUserId());
-            if (p.getPersonId() != null && !p.getPersonId().isBlank()) {
-                ownerIds.add(p.getPersonId());
-            }
-            totalUploads = fileRecordRepository.countByOwnerId(p.getUserId());
-            availableData = fileRecordRepository.countByOwnerIdIn(ownerIds);
+            UserEntity user = userRepository.findById(p.getUserId()).orElseThrow();
+            totalUploads = fileService.countOwnedBy(user);
+            availableData = fileService.countAccessibleBy(user);
+            // #region debug-point D:stats-user
+            debugReport("D", "FilesController.stats", "[DEBUG] calculated user stats", Map.of(
+                    "userId", safe(user.getId()),
+                    "account", safe(user.getAccount()),
+                    "personId", safe(user.getPersonId()),
+                    "totalUploads", totalUploads,
+                    "availableData", availableData
+            ));
+            // #endregion
         }
         
         return ResponseEntity.ok(Map.of(
             "totalUploads", totalUploads,
             "availableData", availableData
         ));
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private static void debugReport(String hypothesisId, String location, String msg, Map<String, Object> data) {
+        try {
+            Path envPath = Path.of(".dbg", "zhangsan-data-zero.env");
+            String url = "http://127.0.0.1:7777/event";
+            String sessionId = "zhangsan-data-zero";
+            if (Files.exists(envPath)) {
+                String env = Files.readString(envPath, StandardCharsets.UTF_8);
+                for (String line : env.split("\\R")) {
+                    if (line.startsWith("DEBUG_SERVER_URL=")) {
+                        url = line.substring("DEBUG_SERVER_URL=".length()).trim();
+                    } else if (line.startsWith("DEBUG_SESSION_ID=")) {
+                        sessionId = line.substring("DEBUG_SESSION_ID=".length()).trim();
+                    }
+                }
+            }
+            String payload = new ObjectMapper().writeValueAsString(Map.of(
+                    "sessionId", sessionId,
+                    "runId", "pre-fix",
+                    "hypothesisId", hypothesisId,
+                    "location", location,
+                    "msg", msg,
+                    "data", data,
+                    "ts", System.currentTimeMillis()
+            ));
+            HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(payload))
+                    .build();
+            DEBUG_HTTP.send(request, HttpResponse.BodyHandlers.discarding());
+        } catch (Exception ignored) {
+        }
     }
 }

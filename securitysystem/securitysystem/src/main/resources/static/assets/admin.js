@@ -44,6 +44,8 @@ async function refreshUsers() {
   const users = await apiFetch("/api/admin/users", { method: "GET" })
   const tbody = document.querySelector("#users tbody")
   tbody.innerHTML = ""
+  const totalUsers = document.getElementById("total-users")
+  if (totalUsers) totalUsers.textContent = users.length
   for (const u of users) {
     const tr = document.createElement("tr")
     tr.innerHTML = "<td></td><td></td><td></td>"
@@ -54,24 +56,56 @@ async function refreshUsers() {
   }
 }
 
+function envelopeTypeLabel(wrappedKey) {
+  const value = wrappedKey || ""
+  if (value.startsWith("LABE_LATTICE_BC:")) return "格基L-ABE"
+  if (value.startsWith("LABE_PROTO_BC:")) return "原型LABE"
+  if (value.startsWith("RSA_WRAP_BC:")) return "RSA兼容"
+  if (!value) return "明文/空"
+  return "其他"
+}
+
 async function refreshFiles() {
   const rows = await apiFetch("/api/admin/files", { method: "GET" })
   const tbody = document.querySelector("#files tbody")
   tbody.innerHTML = ""
+  const totalData = document.getElementById("total-data")
+  if (totalData) totalData.textContent = rows.length
   for (const r of rows) {
     const tr = document.createElement("tr")
-    tr.innerHTML = "<td></td><td></td><td></td><td></td><td></td><td></td><td class='actions'></td>"
+    tr.innerHTML = "<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class='actions'></td>"
     tr.children[0].textContent = r.id
     tr.children[1].textContent = r.ownerLabel || r.ownerId
     tr.children[2].textContent = r.originalName
-    tr.children[3].textContent = fmtBytes(r.sizeBytes)
-    tr.children[4].textContent = r.policy || "-"
-    tr.children[5].textContent = (r.createdAt || "").replace("T", " ").replace("Z", "")
+    tr.children[3].textContent = envelopeTypeLabel(r.wrappedKey)
+    tr.children[4].textContent = fmtBytes(r.sizeBytes)
+    tr.children[5].textContent = r.policy || "-"
+    tr.children[6].textContent = (r.createdAt || "").replace("T", " ").replace("Z", "")
     const a = document.createElement("a")
     a.className = "btn"
     a.textContent = "下载"
     a.href = "/api/files/" + r.id + "/download"
-    tr.children[6].appendChild(a)
+    const btnPolicy = document.createElement("button")
+    btnPolicy.className = "btn primary"
+    btnPolicy.textContent = "改策略"
+    btnPolicy.addEventListener("click", async () => {
+      const nextPolicy = window.prompt("输入新的L-ABE访问策略：", r.policy || "")
+      if (nextPolicy === null) return
+      try {
+        await apiFetch("/api/admin/files/" + r.id + "/policy", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ policy: nextPolicy })
+        })
+        showToast("策略已更新", "仅重封装文件AES密钥，未重加密文件内容", "success")
+        await refreshFiles()
+        await refreshLabeOverview()
+      } catch (e) {
+        showToast("策略更新失败", e.message, "danger")
+      }
+    })
+    tr.children[7].appendChild(a)
+    tr.children[7].appendChild(btnPolicy)
     tbody.appendChild(tr)
   }
 }
@@ -80,6 +114,8 @@ async function refreshRequests() {
   const rows = await apiFetch("/api/admin/account-requests", { method: "GET" })
   const tbody = document.querySelector("#requests tbody")
   tbody.innerHTML = ""
+  const pending = document.getElementById("pending-requests")
+  if (pending) pending.textContent = rows.length
   for (const r of rows) {
     const tr = document.createElement("tr")
     tr.innerHTML = "<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class='actions'></td>"
@@ -166,6 +202,8 @@ async function refreshFeedback() {
   const rows = await apiFetch("/api/admin/feedback", { method: "GET" })
   const tbody = document.querySelector("#feedback tbody")
   tbody.innerHTML = ""
+  const pendingFeedback = document.getElementById("pending-feedback")
+  if (pendingFeedback) pendingFeedback.textContent = rows.filter(r => (r.status || "").toLowerCase() !== "resolved").length
   for (const r of rows) {
     const tr = document.createElement("tr")
     tr.innerHTML = "<td></td><td></td><td></td><td></td><td></td><td></td><td class='actions'></td>"
@@ -234,6 +272,23 @@ async function refreshFeedback() {
   }
 }
 
+async function refreshLabeOverview() {
+  try {
+    const ov = await apiFetch("/api/admin/labe/overview", { method: "GET" })
+    const setText = (id, value) => {
+      const el = document.getElementById(id)
+      if (el) el.textContent = value
+    }
+    setText("labe-lattice-files", ov.latticeFiles || 0)
+    setText("labe-authority-count", ov.authorityCount || 0)
+    setText("labe-bundle-count", ov.userSecretBundles || 0)
+    setText("labe-prototype-files", ov.prototypeFiles || 0)
+    setText("labe-legacy-files", ov.legacyFiles || 0)
+  } catch (e) {
+    console.error("Failed to refresh labe overview:", e)
+  }
+}
+
 async function onExport() {
   showToast("开始导出", "服务器将解密并打包为zip", "success")
   window.location.href = "/api/admin/files/export"
@@ -294,6 +349,7 @@ async function main() {
   await refreshFiles()
   await refreshFeedback()
   await refreshLogs()
+  await refreshLabeOverview()
 }
 
 main()

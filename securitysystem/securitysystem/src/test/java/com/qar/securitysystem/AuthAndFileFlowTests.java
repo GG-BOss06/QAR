@@ -245,6 +245,7 @@ public class AuthAndFileFlowTests {
 
         assertThat(fileJson).contains("\"id\"");
         String fileId = fileJson.split("\"id\":\"")[1].split("\"", 2)[0];
+        assertThat(fileJson).contains("LABE_LATTICE_BC:");
 
         byte[] downloaded = mvc.perform(get("/api/files/" + fileId + "/download")
                         .cookie(sessionCookie))
@@ -253,6 +254,14 @@ public class AuthAndFileFlowTests {
                 .getResponse()
                 .getContentAsByteArray();
         assertThat(downloaded).isEqualTo(payload);
+
+        String payloadJson = mvc.perform(get("/api/files/" + fileId + "/payload")
+                        .cookie(sessionCookie))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(payloadJson).contains(Base64.getEncoder().encodeToString(payload));
 
         mvc.perform(post("/api/feedback")
                         .cookie(sessionCookie)

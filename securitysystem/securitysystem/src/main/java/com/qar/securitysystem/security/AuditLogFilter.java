@@ -28,7 +28,7 @@ public class AuditLogFilter extends OncePerRequestFilter {
         if (!uri.startsWith("/api/")) {
             return true;
         }
-        return uri.startsWith("/api/auth/") || uri.equals("/api/csrf");
+        return uri.startsWith("/api/auth/");
     }
 
     @Override
